@@ -11,10 +11,10 @@
       <a-menu
           v-model:selectedKeys="selectedKeys"
           mode="inline"
-          class="sidebar-menu"
+          class="sidebar-menu main-nav-menu"
           :inline-collapsed="collapsed"
       >
-        <a-menu-item-group :title="collapsed ? '' : '主导航'" class="menu-group">
+        <a-menu-item-group :title="collapsed ? '' : '主导航'" class="menu-group main-nav-group">
           <a-menu-item key="dashboard">
             <template #icon><home-outlined /></template>
             <span>仪表盘</span>
@@ -36,49 +36,59 @@
             <span>标签管理</span>
           </a-menu-item>
         </a-menu-item-group>
+      </a-menu>
 
-        <a-menu-item-group :title="collapsed ? '' : '技术分类'" class="menu-group tech-group">
+      <!-- 技术分类菜单 -->
+      <div class="category-section">
+        <h3 class="section-title">技术分类</h3>
+        <a-menu
+            mode="inline"
+            class="sidebar-menu tech-menu"
+            :inline-collapsed="collapsed"
+        >
           <a-menu-item key="java">
             <template #icon>
               <code-outlined class="tech-icon java-icon" />
             </template>
             <span>Java基础</span>
-            <span class="category-count" v-if="!collapsed">42</span>
+            <div class="category-count" v-if="!collapsed">42</div>
           </a-menu-item>
           <a-menu-item key="mysql">
             <template #icon>
               <database-outlined class="tech-icon mysql-icon" />
             </template>
             <span>MySQL</span>
-            <span class="category-count" v-if="!collapsed">28</span>
+            <div class="category-count" v-if="!collapsed">28</div>
           </a-menu-item>
           <a-menu-item key="spring">
             <template #icon>
               <experiment-outlined class="tech-icon spring-icon" />
             </template>
             <span>Spring系列</span>
-            <span class="category-count" v-if="!collapsed">56</span>
+            <div class="category-count" v-if="!collapsed">56</div>
           </a-menu-item>
           <a-menu-item key="redis">
             <template #icon>
               <cloud-server-outlined class="tech-icon redis-icon" />
             </template>
             <span>Redis</span>
-            <span class="category-count" v-if="!collapsed">17</span>
+            <div class="category-count" v-if="!collapsed">17</div>
           </a-menu-item>
           <a-menu-item key="mq">
             <template #icon>
               <message-outlined class="tech-icon mq-icon" />
             </template>
             <span>消息队列</span>
-            <span class="category-count" v-if="!collapsed">14</span>
+            <div class="category-count" v-if="!collapsed">14</div>
           </a-menu-item>
-        </a-menu-item-group>
-      </a-menu>
+        </a-menu>
+      </div>
 
+      <!-- 添加新分类按钮 - 调整间距 -->
       <div class="add-category-section" v-if="!collapsed">
+        <div class="divider"></div>
         <a-button type="dashed" class="add-category-btn" block>
-          <plus-outlined />
+          <plus-outlined class="plus-icon" />
           <span>添加新分类</span>
         </a-button>
       </div>
@@ -135,34 +145,92 @@ const selectedKeys = ref(['dashboard']);
 
 .sidebar-menu {
   border-right: none;
-  flex: 1;
 }
 
+.main-nav-menu {
+  flex: 0 0 auto;
+}
+
+.tech-menu {
+  margin-bottom: 0;
+}
+
+/* 调整菜单项的文字颜色和加粗 */
 .sidebar-menu :deep(.ant-menu-item) {
   margin: 0;
   padding-left: 16px !important;
   height: 40px;
   line-height: 40px;
+  position: relative;
+  color: #262626;
+  font-weight: 500;
 }
 
+.sidebar-menu :deep(.ant-menu-item:hover) {
+  color: #1C4ED8;
+}
+
+/* 移除右侧蓝色边框，保留选中样式 */
 .sidebar-menu :deep(.ant-menu-item-selected) {
-  background-color: #e6f7ff;
+  background-color: #EBF1FE !important;
+  color: #1C4ED8 !important;
+  font-weight: 600;
+  border-right: none !important;
 }
 
+/* 折叠状态下的菜单项样式 */
+.sidebar-menu.ant-menu-inline-collapsed :deep(.ant-menu-item) {
+  padding: 0 !important;
+  width: 56px !important; /* 确保宽度与侧边栏宽度一致 */
+  text-align: center;
+}
+
+/* 折叠状态下选中项的样式 */
+.sidebar-menu.ant-menu-inline-collapsed :deep(.ant-menu-item-selected) {
+  background-color: #EBF1FE !important;
+  width: 56px !important;
+  padding: 0 !important;
+}
+
+/* 确保图标在折叠状态下居中 */
+.sidebar-menu.ant-menu-inline-collapsed :deep(.ant-menu-item .anticon) {
+  margin: 0 auto;
+  line-height: 40px;
+  font-size: 18px;
+}
+
+.sidebar-menu :deep(.ant-menu-item-active) {
+  color: #1C4ED8;
+}
+
+/* 主导航组标题样式 */
 .menu-group :deep(.ant-menu-item-group-title) {
   padding: 8px 16px;
-  color: #8c9aad;
+  color: #4b5563;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   height: 36px;
   line-height: 20px;
+  letter-spacing: 0.5px;
 }
 
-.tech-group {
-  margin-top: 16px;
+/* 技术分类标题样式 */
+.category-section {
+  margin-top: 8px;
 }
 
+.section-title {
+  padding: 8px 16px;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+/* 图标样式优化 */
 .tech-icon {
   font-size: 16px;
 }
@@ -187,29 +255,65 @@ const selectedKeys = ref(['dashboard']);
   color: #dd6b20;
 }
 
+/* 数量圆圈样式 */
 .category-count {
   position: absolute;
   right: 16px;
-  background-color: #f5f5f5;
-  color: #8c8c8c;
-  font-size: 12px;
-  padding: 0 6px;
-  height: 18px;
-  line-height: 18px;
-  border-radius: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #f0f0f0;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 500;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
+/* 添加新分类按钮样式 */
 .add-category-section {
-  padding: 16px 16px 24px;
-  margin-top: 8px;
+  padding: 0 16px 20px;
+  margin-top: 12px;
+}
+
+.divider {
+  height: 1px;
+  background-color: #f0f0f0;
+  margin-bottom: 16px;
 }
 
 .add-category-btn {
-  color: #1890ff;
-  height: 32px;
+  color: #1C4ED8;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+}
+
+.add-category-btn:hover {
+  color: #0F38A9;
+  border-color: #1C4ED8;
+}
+
+.plus-icon {
+  color: #1C4ED8;
+  font-size: 16px;
+}
+
+/* 改进图标显示效果 */
+:deep(.anticon) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px;
 }
 </style>

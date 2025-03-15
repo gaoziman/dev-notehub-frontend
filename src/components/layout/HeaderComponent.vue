@@ -1,7 +1,7 @@
 <template>
   <a-layout-header class="header">
     <div class="header-content">
-      <!-- 左侧区域：Logo和品牌标识 -->
+      <!-- 左侧区域：Logo和菜单按钮 -->
       <div class="header-left">
         <div class="logo-container">
           <div class="logo-box">
@@ -10,7 +10,6 @@
           <span class="logo-text">DevNoteHub</span>
         </div>
 
-        <!-- 将折叠按钮移至左侧，更符合原型图设计 -->
         <a-button
             type="text"
             class="menu-toggle"
@@ -20,25 +19,30 @@
         </a-button>
       </div>
 
-      <!-- 中间区域：搜索栏 -->
+      <!-- 中间区域：搜索栏 - 全新设计 -->
       <div class="header-center">
-        <div class="search-container">
-          <a-input-search
+        <div class="search-wrapper">
+          <a-input
+              v-model:value="searchValue"
               placeholder="搜索笔记、标签或关键词..."
               class="search-input"
-              :style="{ width: '100%' }"
-              allow-clear
-              v-model:value="searchValue"
-              @search="onSearch"
+              @pressEnter="onSearch"
           >
             <template #prefix>
-              <search-outlined />
+              <search-outlined class="search-icon" />
             </template>
-          </a-input-search>
+          </a-input>
+          <a-button
+              type="primary"
+              class="search-button"
+              @click="onSearch"
+          >
+            <search-outlined />
+          </a-button>
         </div>
       </div>
 
-      <!-- 右侧区域：功能按钮和用户头像 -->
+      <!-- 右侧区域保持不变 -->
       <div class="header-right">
         <a-button type="text" class="action-button add-button">
           <plus-outlined />
@@ -97,8 +101,11 @@ const searchValue = ref('');
 const collapsed = ref(false);
 
 // 搜索方法
-const onSearch = (value: string) => {
-  console.log('搜索:', value);
+const onSearch = () => {
+  if (searchValue.value.trim()) {
+    console.log('正在搜索:', searchValue.value);
+    // 此处实现搜索逻辑
+  }
 };
 
 // 折叠/展开侧边栏
@@ -120,7 +127,7 @@ const emit = defineEmits(['update:collapsed']);
   position: fixed;
   z-index: 1000;
   width: 100%;
-  height: 56px; /* 根据原型图调整高度 */
+  height: 56px;
 }
 
 .header-content {
@@ -130,7 +137,7 @@ const emit = defineEmits(['update:collapsed']);
   padding: 0 16px;
 }
 
-/* 左侧区域样式 */
+/* 左侧区域样式保持不变 */
 .header-left {
   display: flex;
   align-items: center;
@@ -177,11 +184,11 @@ const emit = defineEmits(['update:collapsed']);
 }
 
 .menu-toggle:hover {
-  color: var(--primary-color);
+  color: #1C4ED8;
   background: transparent;
 }
 
-/* 中间区域样式 */
+/* 中间区域样式 - 全新搜索框设计 */
 .header-center {
   flex: 1;
   display: flex;
@@ -190,42 +197,83 @@ const emit = defineEmits(['update:collapsed']);
   padding: 0 24px;
 }
 
-.search-container {
+.search-wrapper {
   width: 100%;
   max-width: 500px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.search-wrapper:hover {
+  border-color: #d9d9d9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.search-wrapper:focus-within {
+  border-color: #1C4ED8;
+  box-shadow: 0 0 0 2px rgba(28, 78, 216, 0.1);
 }
 
 .search-input {
-  border-radius: 4px;
-  transition: all 0.3s;
+  flex: 1;
+  border: none;
+  box-shadow: none !important;
+  font-size: 14px;
 }
 
-.search-input:hover {
-  border-color: #d9d9d9;
+.search-input:focus {
+  outline: none;
+  box-shadow: none !important;
 }
 
 .search-input :deep(.ant-input) {
-  background-color: transparent;
-  font-size: 14px;
-  height: 32px;
+  border: none !important;
+  box-shadow: none !important;
+  padding-left: 12px;
+  height: 36px;
+  color: #333333;
 }
 
 .search-input :deep(.ant-input-prefix) {
-  color: #bfbfbf;
   margin-right: 8px;
 }
 
-/* 修复搜索按钮样式 */
-.search-input :deep(.ant-input-search-button) {
-  height: 32px;
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
+.search-input :deep(.ant-input)::placeholder {
+  color: #9ca3af;
+}
+
+.search-icon {
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+.search-button {
+  height: 36px;
+  border: none;
+  border-radius: 0;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  background-color: #1C4ED8;
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 40px;
+  padding: 0;
+  transition: all 0.3s ease;
 }
 
-/* 右侧区域样式 */
+.search-button:hover {
+  background-color: #0F38A9;
+}
+
+/* 右侧区域样式保持不变，但调整一下图标和按钮 */
 .header-right {
   display: flex;
   align-items: center;
@@ -233,13 +281,13 @@ const emit = defineEmits(['update:collapsed']);
 }
 
 .action-button {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #595959;
+  color: #4b5563;
   background: transparent;
   transition: all 0.2s;
   padding: 0;
@@ -247,8 +295,8 @@ const emit = defineEmits(['update:collapsed']);
 }
 
 .action-button:hover {
-  color: var(--primary-color);
-  background-color: #f0f5ff;
+  color: #1C4ED8;
+  background-color: #f5f7fa;
 }
 
 .add-button {
@@ -265,7 +313,7 @@ const emit = defineEmits(['update:collapsed']);
   align-items: center;
   cursor: pointer;
   padding: 2px 4px;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: all 0.2s;
 }
 
@@ -274,7 +322,7 @@ const emit = defineEmits(['update:collapsed']);
 }
 
 .user-avatar {
-  background: var(--primary-gradient);
+  background: linear-gradient(135deg, #1C4ED8 0%, #3662D9 100%);
   color: white;
 }
 
@@ -298,18 +346,6 @@ const emit = defineEmits(['update:collapsed']);
 
   .user-name {
     display: inline-block; /* 在较大屏幕上显示 */
-  }
-}
-
-@media (min-width: 992px) {
-  .search-container {
-    max-width: 500px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .search-container {
-    max-width: 600px;
   }
 }
 </style>

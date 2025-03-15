@@ -1,8 +1,8 @@
 :root {
     /* 主题色系 - 基于原型图提取 */
-    --primary-color: #3490dc;
-    --primary-color-hover: #2779bd;
-    --primary-gradient: linear-gradient(135deg, #3490dc 0%, #6574cd 100%);
+    --primary-color: #1C4ED8; /* 修改为原型图中的蓝色 */
+    --primary-color-hover: #0F38A9;
+    --primary-gradient: linear-gradient(135deg, #1C4ED8 0%, #3662D9 100%);
 
     /* 功能色 */
     --success-color: #38b2ac;
@@ -11,12 +11,12 @@
     --warning-bg: #fffbeb;
     --error-color: #e53e3e;
     --error-bg: #fff5f5;
-    --info-color: #3490dc;
+    --info-color: #1C4ED8;
     --info-bg: #ebf8ff;
 
     /* 中性色 */
-    --text-primary: #1a202c;
-    --text-secondary: #4a5568;
+    --text-primary: #1a202c; /* 更深的主要文本颜色 */
+    --text-secondary: #4a5568; /* 更深的次要文本颜色 */
     --text-disabled: #a0aec0;
     --border-color: #e2e8f0;
     --divider-color: #edf2f7;
@@ -37,9 +37,11 @@
     background-color: var(--primary-color-hover);
 }
 
+/* 修改菜单选中样式 */
 :where(.css-dev-only-do-not-override-hash).ant-menu-light.ant-menu-inline .ant-menu-item-selected {
-    background-color: #f0f5ff;
+    background-color: #EBF1FE; /* 更浅的背景色 */
     color: var(--primary-color);
+    font-weight: 500; /* 选中后文字加粗 */
 }
 
 :where(.css-dev-only-do-not-override-hash).ant-menu-light .ant-menu-item-selected {
@@ -57,7 +59,7 @@
 :where(.css-dev-only-do-not-override-hash).ant-input:focus,
 :where(.css-dev-only-do-not-override-hash).ant-input-focused {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(52, 144, 220, 0.2);
+    box-shadow: 0 0 0 2px rgba(28, 78, 216, 0.2);
 }
 
 :where(.css-dev-only-do-not-override-hash).ant-checkbox-checked .ant-checkbox-inner {
@@ -80,6 +82,20 @@
 
 :where(.css-dev-only-do-not-override-hash).ant-pagination .ant-pagination-item-active a {
     color: var(--primary-color);
+}
+
+:where(.css-dev-only-do-not-override-hash).ant-btn-link {
+    color: var(--primary-color);
+}
+
+/* 强化文字样式 */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+p, span, div {
+    color: var(--text-secondary);
 }
 
 /* 自定义卡片过渡效果 */

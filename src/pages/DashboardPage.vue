@@ -1,9 +1,21 @@
 <template>
   <div class="dashboard-page">
     <!-- 欢迎消息 -->
-    <div class="welcome-section">
-      <h1 class="welcome-title">欢迎回来，Java开发者</h1>
-      <p class="welcome-date">继续您的学习之旅，今天是{{ currentDate }}</p>
+    <div class="welcome-banner">
+      <div class="welcome-content">
+        <div class="welcome-text">
+          <h1 class="welcome-title">欢迎回来，Java开发者</h1>
+          <p class="welcome-subtitle">继续您的学习之旅，今天是{{ currentDate }}</p>
+        </div>
+        <div class="welcome-decoration">
+          <div class="decoration-circle"></div>
+          <div class="decoration-dots">
+            <div class="dot dot-1"></div>
+            <div class="dot dot-2"></div>
+            <div class="dot dot-3"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 概览卡片 -->
@@ -376,20 +388,108 @@ const getCategoryColor = (category: string) => {
 }
 
 /* 欢迎区域样式 */
-.welcome-section {
-  margin-bottom: 24px;
+.welcome-banner {
+  background: linear-gradient(to right, #f0f5ff, #e6f7ff);
+  border-radius: 16px;
+  padding: 24px 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.welcome-text {
+  flex: 1;
 }
 
 .welcome-title {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
-  color: #1a202c;
-  margin-bottom: 4px;
+  color: #1C4ED8;
+  margin: 0 0 8px 0;
+  line-height: 1.2;
 }
 
-.welcome-date {
-  color: #64748b;
+.welcome-subtitle {
+  font-size: 16px;
+  color: #4b5563;
   margin: 0;
+  font-weight: 500;
+}
+
+.welcome-decoration {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: none;
+}
+
+.decoration-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5B8FF9, #1C4ED8);
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  opacity: 0.8;
+}
+
+.decoration-dots {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.dot {
+  position: absolute;
+  border-radius: 50%;
+  background-color: #1C4ED8;
+  opacity: 0.2;
+}
+
+.dot-1 {
+  width: 20px;
+  height: 20px;
+  left: 0;
+  top: 20px;
+}
+
+.dot-2 {
+  width: 15px;
+  height: 15px;
+  right: 0;
+  bottom: 10px;
+}
+
+.dot-3 {
+  width: 10px;
+  height: 10px;
+  left: 30px;
+  bottom: 30px;
+}
+
+/* 响应式设计 */
+@media (min-width: 768px) {
+  .welcome-decoration {
+    display: block;
+  }
+
+  .welcome-banner {
+    padding: 32px 40px;
+  }
+
+  .welcome-title {
+    font-size: 32px;
+  }
 }
 
 /* 概览卡片样式 */
@@ -414,12 +514,12 @@ const getCategoryColor = (category: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 22px; /* 更大的图标 */
 }
 
 .book-icon {
-  background-color: #ebf8ff;
-  color: #3490dc;
+  background-color: #e6f2ff;
+  color: #1C4ED8; /* 新的主色调 */
 }
 
 .check-icon {
@@ -444,15 +544,16 @@ const getCategoryColor = (category: string) => {
 }
 
 .stat-label {
-  font-size: 13px;
-  color: #64748b;
+  font-size: 14px; /* 稍微增大 */
+  color: #4b5563; /* 更深的颜色 */
+  font-weight: 500; /* 加粗 */
   margin-bottom: 4px;
 }
 
 .stat-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1a202c;
+  font-size: 28px; /* 更大的数值显示 */
+  font-weight: 700; /* 更粗 */
+  color: #111827; /* 更深的颜色 */
 }
 
 /* 章节容器 */
@@ -468,9 +569,9 @@ const getCategoryColor = (category: string) => {
 }
 
 .section-title {
-  font-size: 18px;
+  font-size: 20px; /* 更大的标题 */
   font-weight: 700;
-  color: #1a202c;
+  color: #111827; /* 更深的颜色 */
   margin: 0;
 }
 
