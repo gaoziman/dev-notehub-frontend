@@ -99,7 +99,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import {
   HomeOutlined,
   BookOutlined,
@@ -125,13 +126,64 @@ const props = defineProps({
 // 定义事件
 const emit = defineEmits(['menu-select']);
 
-// 单一的选中状态变量
+// 获取router实例和当前路由
+const router = useRouter();
+const route = useRoute();
+
+// 路由映射表
+const routeMap = {
+  dashboard: '/dashboard',
+  notes: '/notes',
+  progress: '/progress',
+  resources: '/resources',
+  tags: '/tags',
+  java: '/notes?category=java',
+  mysql: '/notes?category=mysql',
+  spring: '/notes?category=spring',
+  redis: '/notes?category=redis',
+  mq: '/notes?category=mq'
+};
+
+// 初始化选中状态
 const selectedKeys = ref(['dashboard']);
+
+// 根据当前路由设置选中的菜单项
+const updateSelectedKeys = () => {
+  const path = route.path;
+  const query = route.query;
+
+  // 先处理路径匹配
+  if (path === '/dashboard') {
+    selectedKeys.value = ['dashboard'];
+  } else if (path === '/notes') {
+    // 如果有分类参数，则选中对应的技术分类
+    if (query.category) {
+      selectedKeys.value = [query.category as string];
+    } else {
+      selectedKeys.value = ['notes'];
+    }
+  } else if (path === '/progress') {
+    selectedKeys.value = ['progress'];
+  } else if (path === '/resources') {
+    selectedKeys.value = ['resources'];
+  } else if (path === '/tags') {
+    selectedKeys.value = ['tags'];
+  } else {
+    // 默认选中仪表盘
+    selectedKeys.value = ['dashboard'];
+  }
+};
 
 // 处理菜单点击事件
 const handleMenuClick = (key: string) => {
   selectedKeys.value = [key];
   emit('menu-select', key);
+
+  // 根据点击的菜单项导航到对应的路由
+  const targetRoute = routeMap[key as keyof typeof routeMap];
+  if (targetRoute) {
+    router.push(targetRoute);
+  }
 };
 
 // 为确保安全，再添加一个监听器，确保只有一个选中项
@@ -139,6 +191,19 @@ watch(selectedKeys, (newVal) => {
   if (newVal && newVal.length > 1) {
     selectedKeys.value = [newVal[newVal.length - 1]];
   }
+});
+
+// 监听路由变化，更新菜单选中状态
+watch(
+    () => route.path,
+    () => {
+      updateSelectedKeys();
+    }
+);
+
+// 组件挂载时，根据当前路由设置选中的菜单项
+onMounted(() => {
+  updateSelectedKeys();
 });
 </script>
 

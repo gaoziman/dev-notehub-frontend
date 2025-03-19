@@ -6,6 +6,7 @@ import { message } from "ant-design-vue";
 import HomePage from "@/pages/home/HomePage.vue";
 import DashboardPage from "@/pages/home/DashboardPage.vue";
 import NotFoundPage from "@/pages/404/NotFoundPage.vue";
+import NotesManagementPage from "@/pages/note/NotesManagementPage.vue";
 
 // 路由配置
 const routes = [
@@ -24,6 +25,15 @@ const routes = [
         component: DashboardPage,
         meta: {
             title: '仪表盘 - DevNoteHub',
+            requiresAuth: true
+        }
+    },
+    {
+        path: '/notes',
+        name: 'NotesManagementPage',
+        component: NotesManagementPage,
+        meta: {
+            title: '我的笔记',
             requiresAuth: true
         }
     },
