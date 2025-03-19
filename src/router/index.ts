@@ -6,7 +6,7 @@ import { message } from "ant-design-vue";
 import HomePage from "@/pages/home/HomePage.vue";
 import DashboardPage from "@/pages/home/DashboardPage.vue";
 import NotFoundPage from "@/pages/404/NotFoundPage.vue";
-import NotesManagementPage from "@/pages/note/NotesManagementPage.vue";
+import NotesManagementPage from "@/pages/notes/NotesManagementPage.vue";
 
 // 路由配置
 const routes = [
