@@ -1,14 +1,41 @@
 <template>
   <a-config-provider :theme="theme">
-    <main-layout>
-      <router-view />
-    </main-layout>
+    <!-- 针对未登录用户，使用不同的布局 -->
+    <template v-if="!userStore.isLoggedIn() && route.path === '/'">
+      <simple-layout>
+        <router-view />
+      </simple-layout>
+    </template>
+    <template v-else>
+      <main-layout>
+        <router-view />
+      </main-layout>
+    </template>
   </a-config-provider>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import MainLayout from './components/layout/MainLayout.vue';
+import { onMounted, ref } from 'vue';
+import MainLayout from '@/components/layout/MainLayout.vue';
+import SimpleLayout from '@/components/layout/SimpleLayout.vue';
+import { useUserStore } from './stores/user';
+import { useRoute, useRouter } from "vue-router";
+
+const route = useRoute();
+const router = useRouter();
+const userStore = useUserStore();
+
+// 应用挂载时检查登录状态和重定向
+onMounted(() => {
+  // 检查当前路由是否需要认证
+  if (route.meta.requiresAuth && !userStore.isLoggedIn()) {
+    // 如果需要认证但用户未登录，重定向到首页并显示登录弹窗
+    router.push({
+      path: '/',
+      query: { redirect: route.fullPath, showLogin: 'true' }
+    });
+  }
+});
 
 // 定义自定义主题
 const theme = ref({

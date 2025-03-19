@@ -1,8 +1,12 @@
+/* ===== 基础变量定义 ===== */
 :root {
     /* 主题色系 - 基于原型图提取 */
     --primary-color: #1C4ED8; /* 修改为原型图中的蓝色 */
     --primary-color-hover: #0F38A9;
     --primary-gradient: linear-gradient(135deg, #1C4ED8 0%, #3662D9 100%);
+    --primary-gradient-hover: linear-gradient(135deg, #0F38A9 0%, #1C4ED8 100%);
+    --primary-light: #E6F7FF;
+    --primary-active: #0C2B7A;
 
     /* 功能色 */
     --success-color: #38b2ac;
@@ -17,18 +21,87 @@
     /* 中性色 */
     --text-primary: #1a202c; /* 更深的主要文本颜色 */
     --text-secondary: #4a5568; /* 更深的次要文本颜色 */
+    --text-tertiary: #6B7280;
     --text-disabled: #a0aec0;
     --border-color: #e2e8f0;
+    --border-light: #E5E7EB;
+    --border-normal: #D1D5DB;
+    --border-focus: #3662D9;
     --divider-color: #edf2f7;
+
+    /* 背景颜色 */
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F8FAFC;
+    --bg-tertiary: #F1F5F9;
+    --bg-card: #FFFFFF;
     --background-primary: #f7fafc;
     --background-secondary: #ffffff;
 
-    /* 卡片阴影 */
+    /* 阴影 */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.05);
     --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* 圆角 */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+
+    /* 间距 */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    --spacing-3xl: 64px;
+
+    /* 过渡 */
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s ease;
+    --transition-slow: 0.5s ease;
+
+    /* 分类颜色 */
+    --category-blue: #1C4ED8;
+    --category-green: #10B981;
+    --category-red: #EF4444;
+    --category-orange: #F59E0B;
+    --category-purple: #8B5CF6;
+    --category-cyan: #06B6D4;
+    --category-lime: #84CC16;
 }
 
-/* 覆盖Ant Design Vue的默认样式 */
+/* ===== 基础重置与全局样式 ===== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'PingFang SC', 'Helvetica Neue', Helvetica, 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    background-color: var(--bg-secondary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 强化文字样式 */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+p, span, div {
+    color: var(--text-secondary);
+}
+
+/* ===== 覆盖 Ant Design Vue 的默认样式 ===== */
 :where(.css-dev-only-do-not-override-hash).ant-btn-primary {
     background-color: var(--primary-color);
 }
@@ -88,16 +161,109 @@
     color: var(--primary-color);
 }
 
-/* 强化文字样式 */
-h1, h2, h3, h4, h5, h6 {
-    color: var(--text-primary);
-    font-weight: 600;
+.ant-btn-primary {
+    background: var(--primary-color);
 }
 
-p, span, div {
+.ant-btn-primary:hover {
+    background: var(--primary-color-hover);
+}
+
+.ant-tag {
+    border-radius: var(--radius-sm);
+    padding: 0 var(--spacing-xs);
+}
+
+.ant-card {
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-normal);
+}
+
+.ant-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.ant-form-item-label > label {
     color: var(--text-secondary);
+    font-weight: 500;
 }
 
+.ant-input,
+.ant-input-affix-wrapper {
+    border-radius: var(--radius-md);
+    transition: var(--transition-normal);
+}
+
+.ant-input:hover,
+.ant-input-affix-wrapper:hover {
+    border-color: var(--primary-color);
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper-focused {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(28, 78, 216, 0.1);
+}
+
+/* ===== 辅助类 ===== */
+.text-center {
+    text-align: center;
+}
+
+.text-left {
+    text-align: left;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.mb-xs {
+    margin-bottom: var(--spacing-xs);
+}
+
+.mb-sm {
+    margin-bottom: var(--spacing-sm);
+}
+
+.mb-md {
+    margin-bottom: var(--spacing-md);
+}
+
+.mb-lg {
+    margin-bottom: var(--spacing-lg);
+}
+
+.mb-xl {
+    margin-bottom: var(--spacing-xl);
+}
+
+.mt-xs {
+    margin-top: var(--spacing-xs);
+}
+
+.mt-sm {
+    margin-top: var(--spacing-sm);
+}
+
+.mt-md {
+    margin-top: var(--spacing-md);
+}
+
+.mt-lg {
+    margin-top: var(--spacing-lg);
+}
+
+.mt-xl {
+    margin-top: var(--spacing-xl);
+}
+
+/* ===== 自定义组件 & 样式 ===== */
 /* 自定义卡片过渡效果 */
 .card-hover {
     transition: all 0.3s ease;
@@ -121,4 +287,94 @@ p, span, div {
     border-radius: 3px;
     background: linear-gradient(90deg, #4fd1c5 0%, #38b2ac 100%);
     transition: width 0.5s ease;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+}
+
+/* ===== 响应式辅助类 ===== */
+.hidden-xs {
+    display: none;
+}
+
+@media (min-width: 576px) {
+    .hidden-xs {
+        display: initial;
+    }
+}
+
+.hidden-sm {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .hidden-sm {
+        display: initial;
+    }
+}
+
+.hidden-md {
+    display: none;
+}
+
+@media (min-width: 992px) {
+    .hidden-md {
+        display: initial;
+    }
+}
+
+.hidden-lg {
+    display: none;
+}
+
+@media (min-width: 1200px) {
+    .hidden-lg {
+        display: initial;
+    }
+}
+
+/* ===== 动画 ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.slide-in-up {
+    animation: slideInUp 0.4s ease;
 }

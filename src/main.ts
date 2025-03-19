@@ -1,34 +1,29 @@
 import { createApp } from 'vue';
-import { createRouter, createWebHistory } from 'vue-router';
+import { createPinia } from 'pinia';
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
 import Antd from 'ant-design-vue';
 import 'ant-design-vue/dist/reset.css';
-import dayjs from 'dayjs';
-import zhCN from 'dayjs/locale/zh-cn';
+import { MotionPlugin } from '@vueuse/motion'
 
-import App from './App.vue';
-import DashboardPage from './pages/DashboardPage.vue';
 
-// 配置dayjs语言为中文
-dayjs.locale(zhCN);
+import App from '@/App.vue';
+import router from '@/router';
 
-// 路由配置
-const routes = [
-    { path: '/', component: DashboardPage },
-    { path: '/dashboard', component: DashboardPage },
-    // 后续可以添加其他路由
-];
+// 导入全局样式
+import '@/assets/styles/base.css';
 
-const router = createRouter({
-    history: createWebHistory(),
-    routes,
-});
+// 创建Pinia实例并使用持久化插件
+const pinia = createPinia();
+pinia.use(piniaPluginPersistedstate);
 
-// 创建Vue应用
+// 创建应用实例
 const app = createApp(App);
 
-// 使用插件
-app.use(Antd);
+// 注册插件
+app.use(pinia);
 app.use(router);
+app.use(MotionPlugin)
+app.use(Antd);
 
 // 挂载应用
 app.mount('#app');

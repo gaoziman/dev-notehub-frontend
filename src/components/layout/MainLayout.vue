@@ -1,21 +1,22 @@
 <template>
   <a-layout class="main-layout">
-    <header-component
-        @update:collapsed="sidebarCollapsed = $event"
-        :collapsed="sidebarCollapsed"
-    />
+    <header-component @update:collapsed="onCollapsedChange" />
+
     <a-layout>
-      <sidebar-component :collapsed="sidebarCollapsed" />
+      <sidebar-component
+          v-if="userStore.isLoggedIn()"
+          :collapsed="collapsed"
+      />
+
       <a-layout-content
           class="main-content"
-          :class="{ 'content-collapsed': sidebarCollapsed }"
+          :class="{ 'with-sidebar': userStore.isLoggedIn() }"
       >
-        <div class="content-container">
-          <slot></slot>
-        </div>
-        <footer-component />
+        <slot></slot>
       </a-layout-content>
     </a-layout>
+
+    <footer-component />
   </a-layout>
 </template>
 
@@ -24,8 +25,17 @@ import { ref } from 'vue';
 import HeaderComponent from './HeaderComponent.vue';
 import SidebarComponent from './SidebarComponent.vue';
 import FooterComponent from './FooterComponent.vue';
+import { useUserStore } from '@/stores/user';
 
-const sidebarCollapsed = ref(false);
+const userStore = useUserStore();
+
+// 侧边栏折叠状态
+const collapsed = ref(false);
+
+// 侧边栏折叠状态变更
+const onCollapsedChange = (value: boolean) => {
+  collapsed.value = value;
+};
 </script>
 
 <style scoped>
@@ -34,32 +44,24 @@ const sidebarCollapsed = ref(false);
 }
 
 .main-content {
-  margin-left: 200px;
-  margin-top: 56px;
-  padding: 0;
-  background-color: #f7fafc;
-  min-height: calc(100vh - 56px);
-  transition: margin-left 0.3s;
-  display: flex;
-  flex-direction: column;
+  padding: 24px;
+  margin-top: 56px; /* 为固定的header留出空间 */
+  min-height: calc(100vh - 56px - 60px); /* 减去header和footer的高度 */
+  background-color: var(--bg-secondary);
+  transition: padding-left 0.3s ease;
 }
 
-.content-container {
-  flex: 1;
-  padding: 20px;
+.main-content.with-sidebar {
+  padding-left: 200px; /* 侧边栏展开时的内容区域左边距 */
 }
 
-.content-collapsed {
-  margin-left: 56px;
+.main-content.with-sidebar.collapsed {
+  padding-left: 80px; /* 侧边栏折叠时的内容区域左边距 */
 }
 
 @media (max-width: 768px) {
-  .main-content {
-    margin-left: 0;
-  }
-
-  .content-container {
-    padding: 16px;
+  .main-content.with-sidebar {
+    padding-left: 0;
   }
 }
 </style>
