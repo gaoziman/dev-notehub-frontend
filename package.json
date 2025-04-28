@@ -1,5 +1,5 @@
 {
-  "name": "template-vue3",
+  "name": "dev-notehub-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,8 +10,11 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@vueuse/motion": "^3.0.3",
+    "animate.css": "^4.1.1",
     "ant-design-vue": "^4.2.6",
     "axios": "^1.8.3",
+    "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "echarts": "^5.6.0",
     "pinia": "^3.0.1",
@@ -21,8 +24,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
+    "@umijs/openapi": "^1.13.0",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vitejs/plugin-vue-jsx": "^4.1.1",
+    "naive-ui": "^2.41.0",
     "typescript": "^5.8.2",
     "vite": "^6.2.1",
     "vite-plugin-vue-devtools": "^7.7.2"
