@@ -1,18 +1,19 @@
 <template>
   <n-config-provider :theme="activeTheme" :theme-overrides="themeOverrides">
-    <slot>
-      <n-message-provider>
-        <StyleTest></StyleTest>
-      </n-message-provider>
-    </slot>
+    <n-message-provider>
+      <n-dialog-provider>
+        <router-view v-slot="{ Component }">
+          <component :is="Component" />
+        </router-view>
+      </n-dialog-provider>
+    </n-message-provider>
   </n-config-provider>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useOsTheme, darkTheme } from 'naive-ui'
-import { themeOverrides } from '@/theme/themeConfig'
-import StyleTest from "@/pages/StyleTest.vue";
+import {ref, computed, provide} from 'vue'
+import {useOsTheme, darkTheme} from 'naive-ui'
+import {themeOverrides} from '@/theme/themeConfig'
 
 // 检测系统主题
 const osThemeRef = useOsTheme()
@@ -28,10 +29,15 @@ const activeTheme = computed(() => {
   return themeMode.value === 'dark' ? darkTheme : null
 })
 
-// 切换主题的方法，可以导出供其他组件使用
+// 切换主题的方法
 const toggleTheme = (mode) => {
   themeMode.value = mode
 }
+
+// 使用 provide 向子组件提供主题相关功能
+provide('themeMode', themeMode)
+provide('toggleTheme', toggleTheme)
+provide('isDarkTheme', computed(() => activeTheme.value !== null))
 
 // 导出切换主题的方法
 defineExpose({
