@@ -3,6 +3,7 @@ import App from '@/App.vue'
 import router from '@/router'
 import { createPinia } from 'pinia'
 import '@/assets/styles/base.css'
+import '@/assets/styles/markdown.css'
 import naive from 'naive-ui'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 

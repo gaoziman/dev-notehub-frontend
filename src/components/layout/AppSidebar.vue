@@ -12,16 +12,19 @@
         :collapsed-icon-size="22"
         :options="menuOptions"
         :indent="18"
+        @update:value="handleMenuClick"
     />
   </aside>
 </template>
 
 <script setup>
 import { h, ref, watchEffect } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import IconFont from "@/components/common/IconFont.vue";
 
 const router = useRouter();
+const route = useRoute();
+
 // 从父组件接收折叠状态
 const props = defineProps({
   isCollapsed: {
@@ -30,7 +33,16 @@ const props = defineProps({
   }
 });
 
+// 初始化活动菜单项为当前路由
 const activeKey = ref('dashboard');
+
+// 监听路由变化，更新活动菜单项
+watchEffect(() => {
+  const routeName = route.name?.toString().toLowerCase();
+  if (routeName) {
+    activeKey.value = routeName;
+  }
+});
 
 // 渲染图标的辅助函数
 function renderIcon(icon) {
@@ -59,7 +71,7 @@ const menuOptions = [
       },
       {
         label: '文档管理',
-        key: 'documents',
+        key: 'documentpage',
         icon: () => h(IconFont, {type: 'icon-wendang'})
       },
       {
@@ -125,7 +137,17 @@ const menuOptions = [
 
 // 菜单项点击处理函数
 const handleMenuClick = (key) => {
-  router.push({ name: key });
+  // 如果是主导航项，直接路由到对应页面
+  if (['dashboard', 'documentpage', 'bookmarks', 'knowledge-graph', 'learning-tracks', 'tools'].includes(key)) {
+    router.push({ name: key });
+  }
+  // 如果是知识分类项，跳转到文档页并传递分类参数
+  else if (['java-basic', 'java-advanced', 'spring', 'spring-boot', 'mysql', 'redis'].includes(key)) {
+    router.push({
+      name: 'DocumentPage',
+      query: { category: key }
+    });
+  }
 };
 </script>
 
