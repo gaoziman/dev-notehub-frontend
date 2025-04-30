@@ -7,11 +7,40 @@
       没有内容可显示
     </div>
     <div v-else class="md-content" v-html="renderedContent" ref="contentRef"></div>
+
+    <!-- 图片预览组件 -->
+    <div v-if="previewVisible" class="image-preview-container" @click.self="closePreview">
+      <div class="preview-header">
+        <span class="preview-counter">{{ currentImageIndex + 1 }} / {{ images.length }}</span>
+        <button class="preview-close-btn" @click="closePreview">
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- 固定位置的导航按钮 -->
+      <button v-if="images.length > 1" class="preview-nav-btn prev-btn" @click="prevImage">
+        <svg viewBox="0 0 24 24" width="36" height="36">
+          <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+        </svg>
+      </button>
+
+      <div class="preview-image-container">
+        <img :src="currentImage.src" :alt="currentImage.alt" class="preview-image" />
+      </div>
+
+      <button v-if="images.length > 1" class="preview-nav-btn next-btn" @click="nextImage">
+        <svg viewBox="0 0 24 24" width="36" height="36">
+          <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+        </svg>
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import {ref, computed, onMounted, watch, nextTick, onUnmounted} from 'vue';
 import MarkdownIt from 'markdown-it';
 import markdownItAnchor from 'markdown-it-anchor';
 import hljs from 'highlight.js';
@@ -34,6 +63,92 @@ const emit = defineEmits(['headings-updated']);
 const loading = ref(true);
 const contentRef = ref(null);
 const headings = ref([]);
+
+// 图片预览相关状态
+const previewVisible = ref(false);
+const images = ref([]);
+const currentImageIndex = ref(0);
+const currentImage = computed(() => images.value[currentImageIndex.value] || { src: '', alt: '' });
+
+// 打开预览
+const openPreview = (index) => {
+  currentImageIndex.value = index;
+  previewVisible.value = true;
+  // 禁止背景滚动
+  document.body.style.overflow = 'hidden';
+};
+
+// 关闭预览
+const closePreview = () => {
+  previewVisible.value = false;
+  // 恢复背景滚动
+  document.body.style.overflow = '';
+};
+
+// 下一张图片
+const nextImage = (e) => {
+  e.stopPropagation();
+  if (currentImageIndex.value < images.value.length - 1) {
+    currentImageIndex.value++;
+  } else {
+    currentImageIndex.value = 0; // 循环到第一张
+  }
+};
+
+// 上一张图片
+const prevImage = (e) => {
+  e.stopPropagation();
+  if (currentImageIndex.value > 0) {
+    currentImageIndex.value--;
+  } else {
+    currentImageIndex.value = images.value.length - 1; // 循环到最后一张
+  }
+};
+
+// 键盘事件处理
+const handleKeyDown = (e) => {
+  if (!previewVisible.value) return;
+
+  switch (e.key) {
+    case 'Escape':
+      closePreview();
+      break;
+    case 'ArrowRight':
+      nextImage(e);
+      break;
+    case 'ArrowLeft':
+      prevImage(e);
+      break;
+  }
+};
+
+// 初始化图片预览功能
+const setupImagePreview = () => {
+  if (!contentRef.value) return;
+
+  // 获取所有图片元素
+  const imgElements = contentRef.value.querySelectorAll('img');
+
+  // 重置图片数组
+  images.value = [];
+
+  // 收集所有图片信息
+  imgElements.forEach((img, index) => {
+    images.value.push({
+      src: img.src,
+      alt: img.alt || `图片 ${index + 1}`
+    });
+
+    // 添加点击事件
+    img.style.cursor = 'zoom-in';
+    img.addEventListener('click', () => {
+      openPreview(index);
+    });
+  });
+
+  // 添加键盘事件监听
+  document.addEventListener('keydown', handleKeyDown);
+};
 
 // 配置markdown-it实例及插件
 const md = new MarkdownIt({
@@ -246,6 +361,7 @@ watch(() => props.content, () => {
     nextTick(() => {
       setupCodeCopy();
       setupHeadingClickEvents(); // 确保每次内容更新后重新绑定标题点击事件
+      setupImagePreview(); // 初始化图片预览功能
     });
   });
 });
@@ -256,7 +372,17 @@ onMounted(() => {
   nextTick(() => {
     setupCodeCopy();
     setupHeadingClickEvents(); // 确保初始化时绑定标题点击事件
+    setupImagePreview(); // 初始化图片预览功能
   });
+});
+
+// 组件卸载时清理
+onUnmounted(() => {
+  // 移除键盘事件监听
+  document.removeEventListener('keydown', handleKeyDown);
+
+  // 恢复背景滚动（以防组件销毁时预览仍处于打开状态）
+  document.body.style.overflow = '';
 });
 </script>
 
@@ -1021,6 +1147,139 @@ onMounted(() => {
   background-color: rgba(59, 130, 246, 0.15);
 }
 
+/* 图片预览组件样式 */
+.image-preview-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease;
+}
+
+.image-preview-content {
+  max-width: 90vw;
+  max-height: 90vh;
+  position: relative;
+  animation: zoomIn 0.3s ease;
+}
+
+.preview-header {
+  position: absolute;
+  top: -50px;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  color: white;
+}
+
+.preview-counter {
+  font-size: 14px;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 20px;
+}
+
+.preview-close-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.preview-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.preview-close-btn svg {
+  fill: white;
+}
+
+.preview-image-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* 固定位置的导航按钮 - 重新设计 */
+.preview-nav-btn {
+  position: fixed; /* 改为固定定位 */
+  top: 50%; /* 垂直居中 */
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 9999; /* 确保在最上层 */
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.preview-nav-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.preview-nav-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.preview-nav-btn svg {
+  fill: white;
+}
+
+.prev-btn {
+  left: 40px; /* 固定距离左侧 */
+}
+
+.next-btn {
+  right: 40px; /* 固定距离右侧 */
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .md-content {
@@ -1051,6 +1310,46 @@ onMounted(() => {
   .md-content pre {
     padding: 8px 10px !important;
     font-size: 12px !important;
+  }
+
+  /* 移动端图片预览导航按钮适配 */
+  .preview-nav-btn {
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .prev-btn {
+    left: 20px; /* 移动端距离边缘更近 */
+  }
+
+  .next-btn {
+    right: 20px; /* 移动端距离边缘更近 */
+  }
+
+  .preview-image {
+    max-height: 70vh;
+  }
+}
+
+/* 超小屏幕适配 */
+@media (max-width: 480px) {
+  .preview-nav-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .preview-nav-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .prev-btn {
+    left: 10px;
+  }
+
+  .next-btn {
+    right: 10px;
   }
 }
 </style>

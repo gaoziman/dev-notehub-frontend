@@ -1,7 +1,7 @@
 <template>
   <div
       class="toc-container"
-      :class="{ 'toc-collapsed': isCollapsed }"
+      :class="{ 'toc-collapsed': props.collapsed, 'dark-mode': isDarkMode }"
       ref="tocContainerRef"
   >
     <div class="toc-wrapper" ref="tocWrapperRef">
@@ -10,9 +10,9 @@
         <button
             class="toc-toggle"
             @click="toggleCollapse"
-            :title="isCollapsed ? '展开目录' : '收起目录'"
+            :title="props.collapsed ? '展开目录' : '收起目录'"
         >
-          <svg viewBox="0 0 24 24" class="toggle-icon" :class="{ 'is-collapsed': isCollapsed }">
+          <svg viewBox="0 0 24 24" class="toggle-icon" :class="{ 'is-collapsed': props.collapsed }">
             <path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z" />
           </svg>
         </button>
@@ -50,6 +50,14 @@ const props = defineProps({
   content: {
     type: String,
     required: true
+  },
+  isDarkMode: {
+    type: Boolean,
+    default: false
+  },
+  collapsed: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -140,17 +148,15 @@ const scrollToHeading = (id) => {
 
 // 切换目录折叠状态
 const toggleCollapse = () => {
-  isCollapsed.value = !isCollapsed.value;
+  // 通知父组件目录折叠状态需要切换
+  emit('toc-collapsed', !props.collapsed);
 
   // 保存状态到本地存储
   try {
-    localStorage.setItem('md-toc-collapsed', isCollapsed.value.toString());
+    localStorage.setItem('md-toc-collapsed', (!props.collapsed).toString());
   } catch (e) {
     console.error('无法保存目录状态:', e);
   }
-
-  // 通知父组件目录折叠状态已更新
-  emit('toc-collapsed', isCollapsed.value);
 };
 
 // 确保活动目录项在视图中可见
@@ -629,75 +635,74 @@ onUnmounted(() => {
   transform: rotate(180deg); /* 旋转折叠按钮 */
 }
 
-/* 暗色模式适配 - 统一颜色方案 */
-@media (prefers-color-scheme: dark) {
-  .toc-wrapper {
-    background-color: #1f2937;
-    border-color: #374151;
-  }
+/* 暗色模式样式 - 现在基于 isDarkMode 属性而不是媒体查询 */
+/* 将原来的媒体查询样式转移到 .dark-mode 类选择器中 */
+.dark-mode .toc-wrapper {
+  background-color: #1f2937;
+  border-color: #374151;
+}
 
-  .toc-header {
-    background-color: #1f2937;
-    border-bottom-color: #374151;
-  }
+.dark-mode .toc-header {
+  background-color: #1f2937;
+  border-bottom-color: #374151;
+}
 
-  .toc-title {
-    background: linear-gradient(90deg, #818cf8 0%, #a5b4fc 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-  }
+.dark-mode .toc-title {
+  background: linear-gradient(90deg, #818cf8 0%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
 
-  .toc-toggle {
-    color: #9ca3af;
-  }
+.dark-mode .toc-toggle {
+  color: #9ca3af;
+}
 
-  .toc-toggle:hover {
-    background-color: #374151;
-    color: #a5b4fc;
-  }
+.dark-mode .toc-toggle:hover {
+  background-color: #374151;
+  color: #a5b4fc;
+}
 
-  /* 暗色模式下的目录项 */
-  .toc-item {
-    color: #d1d5db;
-  }
+/* 暗色模式下的目录项 */
+.dark-mode .toc-item {
+  color: #d1d5db;
+}
 
-  .toc-item:hover {
-    background-color: #374151;
-    color: #f9fafb;
-  }
+.dark-mode .toc-item:hover {
+  background-color: #374151;
+  color: #f9fafb;
+}
 
-  /* 暗色模式下的活动目录项 */
-  .toc-item.active {
-    background-color: rgba(129, 140, 248, 0.2);
-    color: #a5b4fc;
-    box-shadow: 0 1px 3px rgba(129, 140, 248, 0.2);
-  }
+/* 暗色模式下的活动目录项 */
+.dark-mode .toc-item.active {
+  background-color: rgba(129, 140, 248, 0.2);
+  color: #a5b4fc;
+  box-shadow: 0 1px 3px rgba(129, 140, 248, 0.2);
+}
 
-  .toc-item.active .toc-indicator {
-    background-color: #818cf8;
-    box-shadow: 0 0 8px rgba(129, 140, 248, 0.7);
-  }
+.dark-mode .toc-item.active .toc-indicator {
+  background-color: #818cf8;
+  box-shadow: 0 0 8px rgba(129, 140, 248, 0.7);
+}
 
-  /* 暗色模式下使用透明度来区分层级 */
-  .toc-level-4 {
-    opacity: 0.9;
-  }
+/* 暗色模式下使用透明度来区分层级 */
+.dark-mode .toc-level-4 {
+  opacity: 0.9;
+}
 
-  .toc-level-5, .toc-level-6 {
-    opacity: 0.8;
-  }
+.dark-mode .toc-level-5, .dark-mode .toc-level-6 {
+  opacity: 0.8;
+}
 
-  .toc-empty {
-    color: #6b7280;
-  }
+.dark-mode .toc-empty {
+  color: #6b7280;
+}
 
-  .toc-scrollable::-webkit-scrollbar-thumb {
-    background-color: rgba(129, 140, 248, 0.3);
-  }
+.dark-mode .toc-scrollable::-webkit-scrollbar-thumb {
+  background-color: rgba(129, 140, 248, 0.3);
+}
 
-  .toc-scrollable::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(129, 140, 248, 0.5);
-  }
+.dark-mode .toc-scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(129, 140, 248, 0.5);
 }
 
 /* 响应式调整 */
