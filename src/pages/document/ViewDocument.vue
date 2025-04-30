@@ -39,7 +39,13 @@
     </div>
 
     <!-- 中间文档内容区域 -->
-    <div class="document-content" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <div
+        class="document-content"
+        :class="{
+        'sidebar-collapsed': sidebarCollapsed,
+        'toc-collapsed': tocCollapsed
+      }"
+    >
       <!-- 改进的文档头部 -->
       <div class="document-header">
         <div class="document-header-bg"></div>
@@ -180,6 +186,7 @@
             :markdown="documentContent"
             :isDarkMode="isDarkTheme"
             @toc-ready="handleTocFromMarkdown"
+            @toc-collapsed="handleTocCollapsed"
             ref="markdownViewerRef"
         />
         <div v-else class="loading-content">
@@ -299,6 +306,7 @@ const documentContent = ref('');
 const documents = ref([]);
 const sidebarCollapsed = ref(false);
 const isDarkTheme = ref(false);
+const tocCollapsed = ref(false);
 const markdownViewerRef = ref(null);
 const categoryInfo = ref({
   label: '',
@@ -317,6 +325,40 @@ const recentArticles = ref([]);
 // 导航相关
 const prevDocument = ref(null);
 const nextDocument = ref(null);
+
+// 处理目录折叠状态变化
+const handleTocCollapsed = (collapsed) => {
+  tocCollapsed.value = collapsed;
+
+  // 保存目录状态到本地存储
+  try {
+    localStorage.setItem('doc-toc-collapsed', collapsed.toString());
+  } catch (e) {
+    console.error('无法保存目录状态:', e);
+  }
+
+  // 强制窗口重新计算布局
+  nextTick(() => {
+    window.dispatchEvent(new Event('resize'));
+  });
+};
+
+// 切换侧边栏
+const toggleSidebar = () => {
+  sidebarCollapsed.value = !sidebarCollapsed.value;
+
+  // 保存侧边栏状态到本地存储
+  try {
+    localStorage.setItem('doc-sidebar-collapsed', sidebarCollapsed.value.toString());
+  } catch (e) {
+    console.error('无法保存侧边栏状态:', e);
+  }
+
+  // 强制窗口重新计算布局
+  nextTick(() => {
+    window.dispatchEvent(new Event('resize'));
+  });
+};
 
 // 获取文档数据
 const fetchDocument = async () => {
@@ -497,7 +539,7 @@ const toggleLike = () => {
 
 const scrollToComments = () => {
   if (commentsSection.value) {
-    commentsSection.value.scrollIntoView({ behavior: 'smooth' });
+    commentsSection.value.scrollIntoView({behavior: 'smooth'});
   }
 };
 
@@ -525,6 +567,22 @@ const formatDate = (dateString) => {
 // 组件挂载
 onMounted(() => {
   console.log('ViewDocument 组件已挂载');
+
+  // 从本地存储恢复侧边栏和目录状态
+  try {
+    const savedSidebarState = localStorage.getItem('doc-sidebar-collapsed');
+    if (savedSidebarState !== null) {
+      sidebarCollapsed.value = savedSidebarState === 'true';
+    }
+
+    const savedTocState = localStorage.getItem('doc-toc-collapsed');
+    if (savedTocState !== null) {
+      tocCollapsed.value = savedTocState === 'true';
+    }
+  } catch (e) {
+    console.error('无法读取存储状态:', e);
+  }
+
   fetchDocument();
 });
 
@@ -542,11 +600,12 @@ watch(
 </script>
 
 <style>
-/* 修复顶部和左侧边框样式问题 */
+/* 顶部和左侧边框 */
 .doc-view-container {
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 60px;
   --toc-width: 260px;
+  --toc-collapsed-width: 48px; /* 调整折叠时的宽度 */
   --header-height: 64px;
   --primary-color: #6366f1;
   --primary-light: rgba(99, 102, 241, 0.1);
@@ -556,6 +615,7 @@ watch(
   --warning-color: #f59e0b;
   --danger-color: #ef4444;
   --info-color: #3b82f6;
+  --transition-speed: 0.3s;
 
   display: flex;
   min-height: 100vh;
@@ -576,7 +636,7 @@ watch(
   background-color: #ffffff;
   border-right: 1px solid #e5e7eb;
   z-index: 20;
-  transition: width 0.3s ease, transform 0.3s ease;
+  transition: width var(--transition-speed) ease, transform var(--transition-speed) ease;
   display: flex;
   flex-direction: column;
   box-shadow: 1px 0 5px rgba(0, 0, 0, 0.05);
@@ -584,12 +644,51 @@ watch(
 
 .category-sidebar.collapsed {
   width: var(--sidebar-collapsed-width);
+  overflow: hidden;
 }
 
 .sidebar-content {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  transition: opacity var(--transition-speed) ease, transform var(--transition-speed) ease;
+  width: 100%;
+}
+
+.category-sidebar.collapsed .sidebar-content {
+  opacity: 0;
+  transform: translateX(-20px);
+  pointer-events: none;
+}
+
+/* 添加侧边栏折叠按钮 */
+.sidebar-toggle-container {
+  position: absolute;
+  top: 50%;
+  right: -15px;
+  transform: translateY(-50%);
+  z-index: 30;
+}
+
+.sidebar-toggle {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  color: #6b7280;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar-toggle:hover {
+  background-color: var(--primary-lighter);
+  color: var(--primary-color);
+  transform: scale(1.1);
 }
 
 .category-header {
@@ -666,6 +765,7 @@ watch(
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: margin var(--transition-speed) ease;
 }
 
 .document-header-bg {
@@ -806,25 +906,27 @@ watch(
   display: flex;
   flex-direction: column;
   min-height: 200px;
-  width: calc(100% - 48px);
+  transition: margin var(--transition-speed) ease;
+  width: auto; /* 让宽度自适应 */
 }
 
 /* 优化中间内容区域布局 */
 .document-content {
   flex: 1;
   margin-left: var(--sidebar-width);
-  margin-right: 260px; /* 默认右侧留出目录的宽度 */
-  transition: margin-left 0.3s ease, margin-right 0.3s ease;
+  width: calc(100% - var(--sidebar-width)); /* 只考虑左侧边栏宽度 */
+  transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   position: relative;
   min-height: 100vh;
-  max-width: calc(100% - var(--sidebar-width) - 260px);
+  box-sizing: border-box;
 }
 
+/* 左侧边栏折叠时内容区域样式 */
 .document-content.sidebar-collapsed {
   margin-left: var(--sidebar-collapsed-width);
-  max-width: calc(100% - var(--sidebar-collapsed-width) - 240px);
+  width: calc(100% - var(--sidebar-collapsed-width));
 }
 
 .loading-content {
@@ -990,140 +1092,6 @@ watch(
   color: #d1d5db;
 }
 
-/* 作者资料卡片 */
-.author-profile-card {
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  margin: 0 24px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.author-profile-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-}
-
-.author-profile-header {
-  display: flex;
-  align-items: center;
-}
-
-.author-avatar-wrapper {
-  position: relative;
-  margin-right: 20px;
-}
-
-.author-avatar {
-  border: 3px solid white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.author-badge {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  background: var(--primary-gradient);
-  color: white;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 8px;
-  transform: translateY(50%);
-}
-
-.author-info-container {
-  flex: 1;
-}
-
-.author-name-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.author-name-large {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-}
-
-.follow-btn {
-  border-radius: 16px;
-  height: 32px;
-  background: var(--primary-gradient);
-  border: none;
-  transition: all 0.2s ease;
-}
-
-.follow-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.2);
-}
-
-.author-bio {
-  color: #4b5563;
-  font-size: 14px;
-  margin-bottom: 8px;
-  line-height: 1.4;
-}
-
-.author-stats {
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.author-recent-articles {
-  margin-top: 4px;
-}
-
-.recent-articles-title {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: #374151;
-}
-
-.recent-article-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.recent-article-item {
-  display: flex;
-  align-items: center;
-}
-
-.article-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--primary-color);
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-
-.recent-article-link {
-  font-size: 14px;
-  color: #111827;
-  text-decoration: none;
-  transition: color 0.2s ease;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.recent-article-link:hover {
-  color: var(--primary-color);
-}
-
 /* 上下篇导航 */
 .document-nav-buttons {
   display: flex;
@@ -1189,79 +1157,6 @@ watch(
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.comments-header {
-  margin-bottom: 20px;
-}
-
-.comments-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  color: #111827;
-  display: flex;
-  align-items: center;
-}
-
-.comments-count {
-  background-color: var(--primary-lighter);
-  color: var(--primary-color);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 10px;
-  margin-left: 8px;
-}
-
-.comment-editor {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.comment-avatar {
-  flex-shrink: 0;
-}
-
-.comment-input-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.comment-input {
-  margin-bottom: 12px;
-  border-radius: 8px;
-}
-
-.comment-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.submit-comment-btn {
-  border-radius: 16px;
-  height: 32px;
-  background: var(--primary-gradient);
-  border: none;
-  transition: all 0.2s ease;
-}
-
-.submit-comment-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.2);
-}
-
-.empty-comments {
-  display: flex;
-  justify-content: center;
-  padding: 40px 0;
-}
-
-.empty-tip {
-  color: #6b7280;
-  font-size: 14px;
-}
-
 /* 暗色主题 */
 .dark-mode {
   --bg-body: #111827;
@@ -1278,11 +1173,19 @@ watch(
 .dark-mode .category-sidebar,
 .dark-mode .document-body,
 .dark-mode .interaction-card,
-.dark-mode .author-profile-card,
 .dark-mode .nav-btn,
-.dark-mode .comments-section {
+.dark-mode .sidebar-toggle {
   background-color: #1f2937;
   border-color: #374151;
+}
+
+.dark-mode .sidebar-toggle {
+  color: #9ca3af;
+}
+
+.dark-mode .sidebar-toggle:hover {
+  background-color: #374151;
+  color: #a5b4fc;
 }
 
 .dark-mode .category-title,
@@ -1381,7 +1284,7 @@ watch(
 }
 
 /* 响应式样式 */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .document-header {
     flex-direction: column;
   }
@@ -1425,6 +1328,14 @@ watch(
     flex-direction: column;
     gap: 12px;
   }
+
+  /* 调整响应式布局变量 */
+  :root {
+    --sidebar-width: 220px;
+    --toc-width: 220px;
+    --sidebar-collapsed-width: 50px;
+    --toc-collapsed-width: 44px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1444,8 +1355,6 @@ watch(
   }
 
   .interaction-card,
-  .author-profile-card,
-  .comments-section,
   .document-nav-buttons {
     margin-left: 16px;
     margin-right: 16px;
@@ -1459,16 +1368,89 @@ watch(
   .interaction-btn {
     width: 100%;
   }
+
+  /* 移动端优化 */
+  .document-content,
+  .document-content.toc-collapsed,
+  .document-content.sidebar-collapsed,
+  .document-content.sidebar-collapsed.toc-collapsed {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .category-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .category-sidebar.visible {
+    transform: translateX(0);
+  }
+
+  :root {
+    --sidebar-width: 100%;
+    --toc-width: 100%;
+    --sidebar-collapsed-width: 0;
+    --toc-collapsed-width: 0;
+  }
 }
 
 @media print {
   .category-sidebar,
   .interaction-card,
-  .author-profile-card,
   .document-nav-buttons,
-  .comments-section,
-  .article-end-marker {
+  .article-end-marker,
+  .sidebar-toggle-container {
     display: none;
   }
+
+  .document-content,
+  .document-content.toc-collapsed,
+  .document-content.sidebar-collapsed,
+  .document-content.sidebar-collapsed.toc-collapsed {
+    margin: 0;
+    width: 100%;
+  }
+
+  .document-header,
+  .document-body {
+    box-shadow: none;
+  }
+}
+
+/* 添加侧边栏动画 */
+@keyframes sidebar-collapse {
+  from {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+  }
+  to {
+    margin-left: var(--sidebar-collapsed-width);
+    width: calc(100% - var(--sidebar-collapsed-width));
+  }
+}
+
+@keyframes sidebar-expand {
+  from {
+    margin-left: var(--sidebar-collapsed-width);
+    width: calc(100% - var(--sidebar-collapsed-width));
+  }
+  to {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+  }
+}
+
+/* 应用动画 */
+.document-content.sidebar-collapsed {
+  animation: sidebar-collapse var(--transition-speed) ease-out;
+}
+
+.document-content:not(.sidebar-collapsed) {
+  animation: sidebar-expand var(--transition-speed) ease-out;
+}
+
+/* 修复过渡过程中可能出现的问题 */
+.document-content {
+  will-change: margin-left, width;
 }
 </style>

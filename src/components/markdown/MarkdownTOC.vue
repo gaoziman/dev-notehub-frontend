@@ -53,7 +53,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update-active-heading']);
+const emit = defineEmits(['update-active-heading', 'toc-collapsed']);
 
 // 状态管理
 const headings = ref([]);
@@ -148,6 +148,9 @@ const toggleCollapse = () => {
   } catch (e) {
     console.error('无法保存目录状态:', e);
   }
+
+  // 通知父组件目录折叠状态已更新
+  emit('toc-collapsed', isCollapsed.value);
 };
 
 // 确保活动目录项在视图中可见
@@ -357,6 +360,8 @@ onMounted(() => {
     const savedCollapsed = localStorage.getItem('md-toc-collapsed');
     if (savedCollapsed !== null) {
       isCollapsed.value = savedCollapsed === 'true';
+      // 初始化时也发送折叠状态
+      emit('toc-collapsed', isCollapsed.value);
     }
   } catch (e) {
     console.error('无法读取目录状态:', e);
@@ -409,7 +414,7 @@ onUnmounted(() => {
 
 .toc-wrapper {
   background-color: #ffffff;
-  border-radius: 12px;
+  border-radius: 12px 0 0 12px; /* 只对左侧设置圆角 */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   display: flex;
@@ -417,6 +422,7 @@ onUnmounted(() => {
   max-height: calc(100vh - 140px); /* 初始值，会被JS动态更新 */
   transition: max-height 0.3s ease;
   border: 1px solid #e5e7eb;
+  border-right: none; /* 移除右侧边框 */
 }
 
 .toc-header {
@@ -601,22 +607,26 @@ onUnmounted(() => {
 
 /* 折叠状态样式 */
 .toc-collapsed {
-  width: 48px;
+  width: 48px; /* 调整宽度，确保按钮可见 */
 }
 
 .toc-collapsed .toc-wrapper {
-  border-radius: 24px;
+  border-radius: 8px 0 0 8px; /* 折叠时保持左侧圆角 */
 }
 
 .toc-collapsed .toc-title,
 .toc-collapsed .toc-scrollable {
-  display: none;
+  display: none; /* 折叠时隐藏内容 */
 }
 
 .toc-collapsed .toc-header {
-  padding: 10px;
+  padding: 16px 8px;
   justify-content: center;
   border-bottom: none;
+}
+
+.toc-collapsed .toc-toggle {
+  transform: rotate(180deg); /* 旋转折叠按钮 */
 }
 
 /* 暗色模式适配 - 统一颜色方案 */
@@ -697,7 +707,7 @@ onUnmounted(() => {
   }
 
   .toc-collapsed {
-    width: 42px;
+    width: 44px; /* 适应较小屏幕 */
   }
 }
 
