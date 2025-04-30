@@ -51,7 +51,7 @@ const routes = [
         children: [
             {
                 path: '',
-                name: 'Dashboard',
+                name: 'dashboard',
                 component: () => import('@/pages/home/Dashboard.vue'),
                 meta: {
                     title: '仪表盘'
@@ -65,14 +65,14 @@ const routes = [
                     title: '文档管理'
                 }
             },
-            // {
-            //     path: 'bookmarks',
-            //     name: 'Bookmarks',
-            //     component: () => import('@/views/Bookmarks.vue'),
-            //     meta: {
-            //         title: '书签管理'
-            //     }
-            // },
+            {
+                path: 'bookmarks',
+                name: 'bookmarkspage',
+                component: () => import('@/pages/bookmarks/BookmarksPage.vue'),
+                meta: {
+                    title: '书签管理'
+                }
+            },
             // {
             //     path: 'knowledge-graph',
             //     name: 'KnowledgeGraph',
