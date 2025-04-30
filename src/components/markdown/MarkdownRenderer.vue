@@ -245,6 +245,7 @@ watch(() => props.content, () => {
     loading.value = false;
     nextTick(() => {
       setupCodeCopy();
+      setupHeadingClickEvents(); // 确保每次内容更新后重新绑定标题点击事件
     });
   });
 });
@@ -254,12 +255,12 @@ onMounted(() => {
   loading.value = false;
   nextTick(() => {
     setupCodeCopy();
+    setupHeadingClickEvents(); // 确保初始化时绑定标题点击事件
   });
 });
 </script>
 
 <style>
-
 /* 基础样式 */
 .md-renderer {
   color: #333;
@@ -273,7 +274,6 @@ onMounted(() => {
   background-color: transparent !important;
 }
 
-
 .md-content {
   width: 100%;
   max-width: none;
@@ -282,7 +282,6 @@ onMounted(() => {
   background-color: transparent !important;
   box-sizing: border-box;
 }
-
 
 /* 通知和错误提示 */
 .md-notice {
@@ -308,7 +307,7 @@ onMounted(() => {
   animation: fadeIn 0.5s ease-out;
 }
 
-/* 标题样式 - 优雅现代风格 */
+/* ====== 标题样式 ====== */
 .md-content h1,
 .md-content h2,
 .md-content h3,
@@ -317,21 +316,19 @@ onMounted(() => {
 .md-content h6 {
   margin-top: 2em !important;
   margin-bottom: 0.8em !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
   line-height: 1.3 !important;
   position: relative !important;
   scroll-margin-top: 80px !important;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-  transition: transform 0.2s ease, color 0.2s ease !important;
-  animation: slideInFromLeft 0.5s ease-out;
-  background: linear-gradient(to right, #6366f1 0%, #a5b4fc 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent !important;
+  transition: all 0.3s ease !important;
+  color: #2563eb !important;
   letter-spacing: -0.02em !important;
+  padding-left: 0 !important;
+  border-radius: 4px !important;
 }
 
+/* 标题底部装饰线 */
 .md-content h1::after,
 .md-content h2::after,
 .md-content h3::after,
@@ -340,14 +337,24 @@ onMounted(() => {
 .md-content h6::after {
   content: "";
   position: absolute;
-  bottom: -0.2em;
+  bottom: -0.3em;
   left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(to right, #6366f1 0%, rgba(99, 102, 241, 0.1) 100%);
-  transform: scaleX(0.3);
-  transform-origin: left;
-  transition: transform 0.3s ease;
+  width: 2em;
+  height: 3px;
+  background: #2563eb;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* 标题悬停效果 */
+.md-content h1:hover,
+.md-content h2:hover,
+.md-content h3:hover,
+.md-content h4:hover,
+.md-content h5:hover,
+.md-content h6:hover {
+  color: #1d4ed8 !important;
+  transform: translateX(4px);
 }
 
 .md-content h1:hover::after,
@@ -356,19 +363,10 @@ onMounted(() => {
 .md-content h4:hover::after,
 .md-content h5:hover::after,
 .md-content h6:hover::after {
-  transform: scaleX(1);
+  width: 4em;
 }
 
-.md-content h1:hover,
-.md-content h2:hover,
-.md-content h3:hover,
-.md-content h4:hover,
-.md-content h5:hover,
-.md-content h6:hover {
-  transform: translateX(3px);
-}
-
-/* 标题锚点链接 - 动画显示 */
+/* 标题锚点链接 */
 .md-content h1 .header-anchor,
 .md-content h2 .header-anchor,
 .md-content h3 .header-anchor,
@@ -380,10 +378,9 @@ onMounted(() => {
   margin-right: 0.5em;
   opacity: 0;
   text-decoration: none;
-  color: #6366f1;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  color: #60a5fa;
+  transition: all 0.3s ease;
   font-size: 0.85em;
-  -webkit-text-fill-color: #6366f1;
 }
 
 .md-content h1:hover .header-anchor,
@@ -399,50 +396,107 @@ onMounted(() => {
 /* 各级标题的特定样式 */
 .md-content h1 {
   font-size: 2.2rem !important;
-  padding-bottom: 0.5em !important;
+  padding-bottom: 0.3em !important;
   letter-spacing: -0.5px !important;
+  font-weight: 700 !important;
 }
 
 .md-content h2 {
-  font-size: 1.7rem !important;
-  padding-bottom: 0.4em !important;
+  font-size: 1.8rem !important;
+  padding-bottom: 0.2em !important;
   letter-spacing: -0.3px !important;
+  font-weight: 700 !important;
 }
 
 .md-content h3 {
-  font-size: 1.4rem !important;
+  font-size: 1.5rem !important;
   letter-spacing: -0.2px !important;
+  font-weight: 600 !important;
 }
 
 .md-content h4 {
-  font-size: 1.2rem !important;
+  font-size: 1.3rem !important;
+  font-weight: 600 !important;
 }
 
 .md-content h5 {
   font-size: 1.1rem !important;
+  font-weight: 600 !important;
 }
 
 .md-content h6 {
   font-size: 1rem !important;
-  opacity: 0.9 !important;
+  font-weight: 500 !important;
+  color: #3b82f6 !important;
 }
 
-/* 标题激活状态的样式 - 增强动画效果 */
+/* 标题激活状态的样式 */
 .md-heading-active {
-  background-color: rgba(99, 102, 241, 0.15) !important;
+  background-color: rgba(37, 99, 235, 0.08) !important;
   border-radius: 4px !important;
-  animation: pulseHighlight 1.5s ease-out !important;
-  transition: background-color 0.5s ease !important;
+  padding-left: 8px !important;
+  animation: gentleHighlight 1.5s ease-out !important;
 }
 
-@keyframes pulseHighlight {
-  0% { background-color: rgba(99, 102, 241, 0.3); }
-  70% { background-color: rgba(99, 102, 241, 0.15); }
-  100% { background-color: rgba(99, 102, 241, 0.05); }
+@keyframes gentleHighlight {
+  0% { background-color: rgba(37, 99, 235, 0.15); transform: translateX(0); }
+  50% { background-color: rgba(37, 99, 235, 0.1); transform: translateX(2px); }
+  100% { background-color: rgba(37, 99, 235, 0.05); transform: translateX(0); }
 }
 
-/* ======== 黑色Mac风格代码块样式 ======== */
-/* 代码块容器 - 黑色Mac终端风格 */
+/* ====== 引用块样式 ====== */
+.md-content blockquote {
+  margin: 1.8em 0;
+  padding: 1.2em 1.6em;
+  border-left: 4px solid #3b82f6;
+  background-color: #f0f7ff;
+  border-radius: 8px;
+  position: relative;
+  box-shadow: 0 2px 12px rgba(37, 99, 235, 0.08);
+  transition: all 0.3s ease;
+}
+
+.md-content blockquote:hover {
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.12);
+  transform: translateY(-2px);
+}
+
+/* 引用块顶部装饰 */
+.md-content blockquote::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, #3b82f6, transparent);
+  border-radius: 2px 2px 0 0;
+}
+
+.md-content blockquote p {
+  margin: 0.6em 0;
+  color: #1e40af;
+  font-size: 1rem;
+  line-height: 1.7;
+  position: relative;
+  z-index: 1;
+}
+
+.md-content blockquote p:first-of-type {
+  margin-top: 0;
+}
+
+.md-content blockquote p:last-of-type {
+  margin-bottom: 0;
+}
+
+/* 引用块中的代码 */
+.md-content blockquote code {
+  background-color: rgba(255, 255, 255, 0.6);
+  color: #2563eb;
+}
+
+/* ====== 优化后的代码块样式 ====== */
 .md-code-block {
   margin: 1em 0;
   border-radius: 8px;
@@ -452,6 +506,10 @@ onMounted(() => {
   line-height: 0;
   background-color: #2d333b;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  /* 设置最大宽度，防止水平溢出 */
+  width: 100%;
+  max-width: 100%;
 }
 
 .md-code-block:hover {
@@ -459,30 +517,28 @@ onMounted(() => {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* 代码块标题栏 - 黑色Mac终端风格 */
+/* 优化代码块头部 */
 .md-code-header {
-  height: 30px;
+  height: 26px; /* 减小高度 */
   background-color: #1c2128;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 10px; /* 减小内边距 */
   position: relative;
 }
 
-/* 控制按钮圆点容器 */
 .md-code-dots {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px; /* 减小间距 */
 }
 
-/* 控制按钮圆点 */
 .md-code-dot {
-  width: 12px;
-  height: 12px;
+  width: 10px; /* 减小大小 */
+  height: 10px; /* 减小大小 */
   border-radius: 50%;
   display: inline-block;
   transition: all 0.2s ease;
@@ -500,14 +556,8 @@ onMounted(() => {
   background-color: #27c93f;
 }
 
-.md-code-dot:hover {
-  transform: scale(1.1);
-  filter: brightness(1.1);
-}
-
-/* 语言标识 */
 .md-code-language {
-  font-size: 12px;
+  font-size: 11px; /* 减小字体 */
   color: #adbac7;
   text-transform: lowercase;
   position: absolute;
@@ -515,11 +565,10 @@ onMounted(() => {
   transform: translateX(-50%);
 }
 
-/* 复制按钮 */
 .md-copy-button {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
+  font-size: 10px; /* 减小字体 */
+  padding: 1px 6px; /* 减小内边距 */
+  border-radius: 3px;
   border: none;
   background-color: rgba(205, 217, 229, 0.1);
   color: #adbac7;
@@ -542,22 +591,22 @@ onMounted(() => {
   color: #ffffff;
 }
 
-/* 代码内容区域 - 黑色Mac终端风格 */
+/* 优化代码内容区域 */
 .md-content pre {
   margin: 0 !important;
-  padding: 16px !important;
+  padding: 10px 12px !important;
   color: #e6edf3 !important;
-  font-size: 14px !important;
-  line-height: 1.5 !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
   overflow-x: auto !important;
   font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace !important;
   border: none !important;
   display: block !important;
   min-height: 0 !important;
   border-radius: 0 0 8px 8px !important;
+  max-width: 800px !important;
 }
 
-/* 代码文本优化 */
 .md-content pre code {
   background: none !important;
   color: inherit !important;
@@ -570,9 +619,9 @@ onMounted(() => {
   tab-size: 2 !important;
   display: inline !important;
   white-space: pre !important;
+  max-width: 100% !important;
 }
 
-/* 去除多余空间 */
 .md-content pre code::after {
   content: none !important;
 }
@@ -581,7 +630,7 @@ onMounted(() => {
   display: none !important;
 }
 
-/* 代码高亮样式 - GitHub Dark主题兼容 */
+/* 高亮代码样式 */
 .hljs-doctag,
 .hljs-keyword,
 .hljs-meta .hljs-keyword,
@@ -649,30 +698,10 @@ onMounted(() => {
   color: #f2cc60 !important;
 }
 
-.hljs-emphasis {
-  color: #c9d1d9;
-  font-style: italic !important;
-}
-
-.hljs-strong {
-  color: #c9d1d9;
-  font-weight: bold !important;
-}
-
-.hljs-addition {
-  color: #aff5b4;
-  background-color: #033a16 !important;
-}
-
-.hljs-deletion {
-  color: #ffdcd7;
-  background-color: #67060c !important;
-}
-
 /* 滚动条样式 */
 .md-content pre::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
+  height: 5px; /* 减小滚动条高度 */
+  width: 5px;
 }
 
 .md-content pre::-webkit-scrollbar-track {
@@ -697,53 +726,18 @@ onMounted(() => {
 }
 
 .md-content a {
-  color: #6366f1;
+  color: #2563eb;
   text-decoration: none;
-  border-bottom: 1px dashed rgba(99, 102, 241, 0.5);
+  border-bottom: 1px solid rgba(37, 99, 235, 0.3);
   transition: all 0.2s ease;
   padding-bottom: 1px;
 }
 
 .md-content a:hover {
-  color: #4f46e5;
-  border-bottom: 1px solid rgba(99, 102, 241, 0.8);
-}
-
-/* 引用块样式 */
-.md-content blockquote {
-  margin: 1.5em 0;
-  padding: 1em 1.5em;
-  border-left: 4px solid #6366f1;
-  background-color: rgba(99, 102, 241, 0.05);
-  border-radius: 0 8px 8px 0;
-  position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  animation: fadeIn 0.5s ease-out;
-}
-
-.md-content blockquote::before {
-  content: "";
-  font-family: Georgia, serif;
-  font-size: 4em;
-  position: absolute;
-  top: -0.4em;
-  left: 0.1em;
-  color: rgba(99, 102, 241, 0.1);
-  pointer-events: none;
-}
-
-.md-content blockquote p {
-  margin: 0.5em 0;
-  color: #4b5563;
-  font-style: italic;
-}
-
-.md-content blockquote p:first-of-type {
-  margin-top: 0;
-}
-
-.md-content blockquote p:last-of-type {
-  margin-bottom: 0;
+  color: #1d4ed8;
+  border-bottom: 1px solid rgba(37, 99, 235, 0.8);
+  background-color: rgba(37, 99, 235, 0.05);
+  border-radius: 2px;
 }
 
 /* 列表样式 */
@@ -760,11 +754,11 @@ onMounted(() => {
 }
 
 .md-content ul li::marker {
-  color: #6366f1;
+  color: #3b82f6;
 }
 
 .md-content ol li::marker {
-  color: #6366f1;
+  color: #3b82f6;
   font-weight: 600;
 }
 
@@ -809,7 +803,7 @@ onMounted(() => {
 }
 
 .md-content table tr:hover {
-  background-color: rgba(99, 102, 241, 0.05);
+  background-color: rgba(59, 130, 246, 0.05);
 }
 
 /* 图片样式 */
@@ -833,7 +827,7 @@ onMounted(() => {
 .md-content hr {
   margin: 2.5em 0;
   height: 1px;
-  background-image: linear-gradient(to right, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.5), rgba(99, 102, 241, 0.1));
+  background-image: linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.5), rgba(59, 130, 246, 0.1));
   border: none;
   animation: growWidth 1s ease-out;
 }
@@ -902,10 +896,14 @@ onMounted(() => {
   font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-size: 0.9em;
   padding: 0.2em 0.4em;
-  background-color: rgba(99, 102, 241, 0.08);
+  background-color: rgba(59, 130, 246, 0.08);
   border-radius: 4px;
-  color: #6366f1;
+  color: #2563eb;
   transition: background-color 0.2s ease;
+}
+
+.md-content :not(pre) > code:hover {
+  background-color: rgba(59, 130, 246, 0.12);
 }
 
 /* 动画定义 */
@@ -926,82 +924,133 @@ onMounted(() => {
 
 @keyframes popIn {
   0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  50% { transform: scale(1.05); }
   100% { transform: scale(1); }
 }
 
 /* 滚动条自定义 */
 .md-renderer::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 .md-renderer::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .md-renderer::-webkit-scrollbar-thumb {
-  background-color: rgba(99, 102, 241, 0.3);
-  border-radius: 8px;
-  border: 2px solid transparent;
+  background-color: rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  border: 1.5px solid transparent;
   background-clip: content-box;
 }
 
 .md-renderer::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(99, 102, 241, 0.5);
+  background-color: rgba(59, 130, 246, 0.5);
 }
 
-.dark-mode .md-renderer::-webkit-scrollbar-thumb {
-  background-color: rgba(129, 140, 248, 0.3);
+/* 暗色模式适配 */
+.dark-mode {
+  color: #e2e8f0;
 }
 
-.dark-mode .md-renderer::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(129, 140, 248, 0.5);
+.dark-mode .md-content h1,
+.dark-mode .md-content h2,
+.dark-mode .md-content h3,
+.dark-mode .md-content h4,
+.dark-mode .md-content h5,
+.dark-mode .md-content h6 {
+  color: #60a5fa !important;
 }
 
-/* 暗色模式适配 - 已默认是黑色Mac终端风格 */
-.dark-mode .md-code-block {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+.dark-mode .md-content h1::after,
+.dark-mode .md-content h2::after,
+.dark-mode .md-content h3::after,
+.dark-mode .md-content h4::after,
+.dark-mode .md-content h5::after,
+.dark-mode .md-content h6::after {
+  background: #60a5fa;
 }
 
-.dark-mode .md-content pre {
-  background-color: #2d333b !important;
-  color: #e6edf3 !important;
+.dark-mode .md-content blockquote {
+  background-color: rgba(37, 99, 235, 0.1);
+  border-left: 4px solid #60a5fa;
+  box-shadow: 0 2px 12px rgba(37, 99, 235, 0.15);
 }
 
-.dark-mode .md-code-header {
-  background-color: #1c2128;
+.dark-mode .md-content blockquote p {
+  color: #93c5fd;
 }
 
-.dark-mode .md-code-language {
-  color: #adbac7;
+.dark-mode .md-content a {
+  color: #60a5fa;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
 }
 
-.dark-mode .md-copy-button {
-  background-color: rgba(205, 217, 229, 0.1);
-  color: #adbac7;
+.dark-mode .md-content a:hover {
+  color: #93c5fd;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.8);
+  background-color: rgba(96, 165, 250, 0.1);
 }
 
-.dark-mode .md-copy-button:hover {
-  background-color: rgba(205, 217, 229, 0.2);
-  color: #ffffff;
+.dark-mode .md-content :not(pre) > code {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
 }
 
-.dark-mode .md-content pre::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+.dark-mode .md-content table th {
+  background-color: #1f2937;
+  border-bottom: 2px solid #374151;
+  color: #e2e8f0;
 }
 
-.dark-mode .md-content pre::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.2);
+.dark-mode .md-content table td {
+  border-bottom: 1px solid #374151;
 }
 
-.dark-mode .md-content pre::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+.dark-mode .md-content table tr {
+  background-color: #111827;
 }
+
+.dark-mode .md-content table tr:nth-child(2n) {
+  background-color: #1f2937;
+}
+
+.dark-mode .md-content table tr:hover {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+/* 响应式设计 */
 @media (max-width: 768px) {
   .md-content {
-    padding: 24px 20px; /* 在小屏幕上进一步减少内边距 */
+    padding: 24px 16px;
+  }
+
+  .md-content h1 {
+    font-size: 1.8rem !important;
+  }
+
+  .md-content h2 {
+    font-size: 1.5rem !important;
+  }
+
+  .md-content h3 {
+    font-size: 1.3rem !important;
+  }
+
+  .md-content blockquote {
+    padding: 1em 1.2em;
+  }
+
+  /* 移动端代码块进一步优化 */
+  .md-code-header {
+    height: 24px;
+  }
+
+  .md-content pre {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
   }
 }
 </style>
