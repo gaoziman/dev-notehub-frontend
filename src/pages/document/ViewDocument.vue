@@ -40,13 +40,16 @@
 
     <!-- 中间文档内容区域 -->
     <div class="document-content" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
-      <!-- 文档头部 -->
+      <!-- 改进的文档头部 -->
       <div class="document-header">
+        <div class="document-header-bg"></div>
+
         <div class="header-content">
+          <!-- 面包屑导航 -->
           <div class="breadcrumb-wrapper">
             <n-breadcrumb>
               <n-breadcrumb-item>
-                <router-link to="/documents">
+                <router-link to="/documents" class="breadcrumb-link">
                   <n-icon size="14" class="icon-with-space">
                     <icon-font type="icon-home" />
                   </n-icon>
@@ -54,43 +57,50 @@
                 </router-link>
               </n-breadcrumb-item>
               <n-breadcrumb-item v-if="categoryInfo.parentLabel">
-                {{ categoryInfo.parentLabel }}
+                <span class="breadcrumb-text">{{ categoryInfo.parentLabel }}</span>
               </n-breadcrumb-item>
               <n-breadcrumb-item>
-                {{ categoryInfo.label }}
+                <span class="breadcrumb-text">{{ categoryInfo.label }}</span>
               </n-breadcrumb-item>
             </n-breadcrumb>
           </div>
 
-          <h1 class="document-title">{{ document.title }}</h1>
+          <!-- 文档标题 -->
+          <h1 class="document-title">
+            <span class="title-decoration"></span>
+            {{ document.title }}
+          </h1>
 
+          <!-- 文档元数据 -->
           <div class="document-meta">
-            <div class="author-info">
-              <n-avatar
-                  round
-                  size="small"
-                  :src="document.avatarUrl"
-                  fallback-src="https://cdnimg103.lizhi.fm/user/2020/10/10/2795836156849848331_160x160.jpg"
-              />
-              <span class="author-name">{{ document.author }}</span>
-            </div>
+            <div class="meta-left">
+              <div class="author-info">
+                <n-avatar
+                    round
+                    size="small"
+                    :src="document.avatarUrl"
+                    fallback-src="https://cdnimg103.lizhi.fm/user/2020/10/10/2795836156849848331_160x160.jpg"
+                />
+                <span class="author-name">{{ document.author }}</span>
+              </div>
 
-            <n-divider vertical />
+              <n-divider vertical />
 
-            <div class="meta-item">
-              <n-icon size="14">
-                <icon-font type="icon-time" />
-              </n-icon>
-              <span>{{ formatDate(document.updateTime) }}</span>
-            </div>
+              <div class="meta-item">
+                <n-icon size="14">
+                  <icon-font type="icon-time" />
+                </n-icon>
+                <span>{{ formatDate(document.updateTime) }}</span>
+              </div>
 
-            <n-divider vertical />
+              <n-divider vertical />
 
-            <div class="meta-item">
-              <n-icon size="14">
-                <icon-font type="icon-eye" />
-              </n-icon>
-              <span>{{ document.views }} 阅读</span>
+              <div class="meta-item">
+                <n-icon size="14">
+                  <icon-font type="icon-eye" />
+                </n-icon>
+                <span>{{ document.views }} 阅读</span>
+              </div>
             </div>
 
             <div class="document-tags">
@@ -107,38 +117,59 @@
           </div>
         </div>
 
+        <!-- 文档操作按钮 -->
         <div class="document-actions">
-          <n-button circle secondary @click="toggleTheme" class="action-btn">
-            <template #icon>
-              <n-icon>
-                <icon-font :type="isDarkTheme ? 'icon-sun' : 'icon-moon'" />
-              </n-icon>
+          <n-tooltip trigger="hover" placement="bottom">
+            <template #trigger>
+              <n-button circle secondary @click="toggleTheme" class="action-btn">
+                <template #icon>
+                  <n-icon>
+                    <icon-font :type="isDarkTheme ? 'icon-sun' : 'icon-moon'" />
+                  </n-icon>
+                </template>
+              </n-button>
             </template>
-          </n-button>
+            <span>{{ isDarkTheme ? '亮色模式' : '暗色模式' }}</span>
+          </n-tooltip>
 
-          <n-button circle secondary @click="handlePrint" class="action-btn">
-            <template #icon>
-              <n-icon>
-                <icon-font type="icon-printer" />
-              </n-icon>
+          <n-tooltip trigger="hover" placement="bottom">
+            <template #trigger>
+              <n-button circle secondary @click="handlePrint" class="action-btn">
+                <template #icon>
+                  <n-icon>
+                    <icon-font type="icon-printer" />
+                  </n-icon>
+                </template>
+              </n-button>
             </template>
-          </n-button>
+            <span>打印文档</span>
+          </n-tooltip>
 
-          <n-button circle secondary class="action-btn">
-            <template #icon>
-              <n-icon>
-                <icon-font type="icon-star" />
-              </n-icon>
+          <n-tooltip trigger="hover" placement="bottom">
+            <template #trigger>
+              <n-button circle secondary class="action-btn">
+                <template #icon>
+                  <n-icon>
+                    <icon-font type="icon-star" />
+                  </n-icon>
+                </template>
+              </n-button>
             </template>
-          </n-button>
+            <span>收藏文档</span>
+          </n-tooltip>
 
-          <n-button circle secondary class="action-btn">
-            <template #icon>
-              <n-icon>
-                <icon-font type="icon-share" />
-              </n-icon>
+          <n-tooltip trigger="hover" placement="bottom">
+            <template #trigger>
+              <n-button circle secondary class="action-btn">
+                <template #icon>
+                  <n-icon>
+                    <icon-font type="icon-share" />
+                  </n-icon>
+                </template>
+              </n-button>
             </template>
-          </n-button>
+            <span>分享文档</span>
+          </n-tooltip>
         </div>
       </div>
 
@@ -154,51 +185,95 @@
         <div v-else class="loading-content">
           <n-skeleton text :repeat="10" />
         </div>
-
-        <!-- 目录调试信息（可在测试后移除） -->
-        <div class="toc-debug" style="position: fixed; top: 5px; right: 5px; z-index: 1000; padding: 5px; background: rgba(0,0,0,0.1); font-size: 12px; display: none;">
-          目录状态: {{ markdownViewerRef?.tocCollapsed ? '折叠' : '展开' }}
-        </div>
       </div>
 
-      <!-- 文档底部 -->
+      <!-- 改进的文档底部 -->
       <div class="document-footer">
-        <div class="divider-with-text">
-          <span>本文结束</span>
+        <!-- 文章结束标记 -->
+        <div class="article-end-marker">
+          <div class="end-line"></div>
+          <div class="end-badge">
+            <n-icon size="16" class="end-icon">
+              <icon-font type="icon-check-circle" />
+            </n-icon>
+            <span>本文结束</span>
+          </div>
+          <div class="end-line"></div>
         </div>
 
-        <div class="document-reactions">
-          <n-button class="reaction-btn like-btn">
-            <template #icon>
-              <n-icon>
+        <!-- 互动按钮区 -->
+        <div class="interaction-card">
+          <div class="interaction-buttons">
+            <n-button class="interaction-btn like-btn" :class="{ 'is-liked': isLiked }" @click="toggleLike">
+              <template #icon>
+                <n-icon>
+                  <icon-font type="icon-like" />
+                </n-icon>
+              </template>
+              <span class="btn-text">喜欢</span>
+              <span class="count-badge" v-if="document.likes">{{ document.likes }}</span>
+            </n-button>
+
+            <n-button class="interaction-btn comment-btn" @click="scrollToComments">
+              <template #icon>
+                <n-icon>
+                  <icon-font type="icon-comment" />
+                </n-icon>
+              </template>
+              <span class="btn-text">评论</span>
+              <span class="count-badge" v-if="document.comments?.length">{{ document.comments.length }}</span>
+            </n-button>
+
+            <n-button class="interaction-btn share-btn">
+              <template #icon>
+                <n-icon>
+                  <icon-font type="icon-share" />
+                </n-icon>
+              </template>
+              <span class="btn-text">分享</span>
+            </n-button>
+          </div>
+
+          <div class="article-stats">
+            <span class="stat-item">
+              <n-icon size="14" class="stat-icon">
+                <icon-font type="icon-eye" />
+              </n-icon>
+              {{ document.views || 0 }} 阅读
+            </span>
+            <span class="stat-divider">|</span>
+            <span class="stat-item">
+              <n-icon size="14" class="stat-icon">
                 <icon-font type="icon-like" />
               </n-icon>
-            </template>
-            喜欢 ({{ document.likes || 0 }})
-          </n-button>
-
-          <n-button class="reaction-btn comment-btn">
-            <template #icon>
-              <n-icon>
-                <icon-font type="icon-comment" />
-              </n-icon>
-            </template>
-            评论 ({{ document.comments?.length || 0 }})
-          </n-button>
+              {{ document.likes || 0 }} 喜欢
+            </span>
+          </div>
         </div>
 
-        <div class="author-card">
-          <n-avatar
-              round
-              size="large"
-              :src="document.avatarUrl"
-              fallback-src="https://cdnimg103.lizhi.fm/user/2020/10/10/2795836156849848331_160x160.jpg"
-          />
-          <div class="author-info-extended">
-            <div class="author-name-large">{{ document.author }}</div>
-            <div class="author-bio">{{ document.authorBio || '热爱技术分享的开发者' }}</div>
-          </div>
-          <n-button type="primary" ghost class="follow-btn">关注作者</n-button>
+        <!-- 上下篇导航 -->
+        <div class="document-nav-buttons">
+          <n-button v-if="prevDocument" class="nav-btn prev-btn" @click="navigateToDocument(prevDocument.id)">
+            <template #icon>
+              <n-icon>
+                <icon-font type="icon-arrow-left" />
+              </n-icon>
+            </template>
+            <span class="nav-label">上一篇</span>
+            <span class="nav-title">{{ prevDocument?.title }}</span>
+          </n-button>
+
+          <div class="nav-spacer" v-if="prevDocument && nextDocument"></div>
+
+          <n-button v-if="nextDocument" class="nav-btn next-btn" @click="navigateToDocument(nextDocument.id)">
+            <span class="nav-label">下一篇</span>
+            <span class="nav-title">{{ nextDocument?.title }}</span>
+            <template #icon>
+              <n-icon>
+                <icon-font type="icon-arrow-right" />
+              </n-icon>
+            </template>
+          </n-button>
         </div>
       </div>
     </div>
@@ -206,12 +281,11 @@
 </template>
 
 <script setup>
-import {ref, onMounted, watch, nextTick} from 'vue';
+import {ref, onMounted, watch, nextTick, computed} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import IconFont from '@/components/common/IconFont.vue';
 import documentService from '@/services/documentService';
 
-// 导入新的Markdown渲染组件
 import MarkdownViewer from '@/components/markdown/MarkdownViewer.vue';
 
 // 路由相关
@@ -230,6 +304,19 @@ const categoryInfo = ref({
   label: '',
   parentLabel: ''
 });
+
+// 新增状态
+const isLiked = ref(false);
+const commentsSection = ref(null);
+const authorStats = ref({
+  articles: 42,
+  followers: 156
+});
+const recentArticles = ref([]);
+
+// 导航相关
+const prevDocument = ref(null);
+const nextDocument = ref(null);
 
 // 获取文档数据
 const fetchDocument = async () => {
@@ -291,6 +378,20 @@ const fetchDocument = async () => {
     if (doc.category) {
       const categoryKey = Array.isArray(doc.category) ? doc.category[doc.category.length - 1] : doc.category;
       documents.value = documentService.getDocumentsByCategory(categoryKey);
+
+      // 模拟获取上下篇
+      const currentIndex = documents.value.findIndex(d => d.id === doc.id);
+      if (currentIndex > 0) {
+        prevDocument.value = documents.value[currentIndex - 1];
+      }
+      if (currentIndex < documents.value.length - 1) {
+        nextDocument.value = documents.value[currentIndex + 1];
+      }
+
+      // 模拟获取作者最近文章
+      recentArticles.value = documents.value
+          .filter(d => d.author === doc.author && d.id !== doc.id)
+          .slice(0, 3);
     } else {
       documents.value = documentService.getAllDocuments();
     }
@@ -383,6 +484,23 @@ const handleTocFromMarkdown = (headings) => {
   }
 };
 
+// 新增交互方法
+const toggleLike = () => {
+  isLiked.value = !isLiked.value;
+  if (isLiked.value) {
+    document.value.likes = (document.value.likes || 0) + 1;
+    window.$message?.success('已添加到收藏');
+  } else {
+    document.value.likes = Math.max(0, (document.value.likes || 1) - 1);
+  }
+};
+
+const scrollToComments = () => {
+  if (commentsSection.value) {
+    commentsSection.value.scrollIntoView({ behavior: 'smooth' });
+  }
+};
+
 // 切换主题
 const toggleTheme = () => {
   isDarkTheme.value = !isDarkTheme.value;
@@ -430,6 +548,14 @@ watch(
   --sidebar-collapsed-width: 60px;
   --toc-width: 260px;
   --header-height: 64px;
+  --primary-color: #6366f1;
+  --primary-light: rgba(99, 102, 241, 0.1);
+  --primary-lighter: rgba(99, 102, 241, 0.05);
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --info-color: #3b82f6;
 
   display: flex;
   min-height: 100vh;
@@ -458,23 +584,6 @@ watch(
 
 .category-sidebar.collapsed {
   width: var(--sidebar-collapsed-width);
-}
-
-.sidebar-toggle {
-  position: absolute;
-  top: 20px;
-  right: -12px;
-  width: 24px;
-  height: 24px;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-content {
@@ -516,8 +625,8 @@ watch(
 }
 
 .article-item.active {
-  background-color: #eef2ff;
-  border-left: 3px solid #6366f1;
+  background-color: var(--primary-lighter);
+  border-left: 3px solid var(--primary-color);
 }
 
 .article-title {
@@ -542,57 +651,91 @@ watch(
   margin-right: 4px;
 }
 
-/* 中间内容区域 */
-.document-content {
-  flex: 1;
-  margin-left: var(--sidebar-width);
-  margin-right: 260px; /* 确保为目录预留空间 */
-  transition: margin-left 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  min-height: 100vh;
-  /* 更新最大宽度计算，考虑目录宽度 */
-  max-width: calc(100% - var(--sidebar-width) - 260px);
-}
-
-.document-content.sidebar-collapsed {
-  margin-left: var(--sidebar-collapsed-width);
-  max-width: calc(100% - var(--sidebar-collapsed-width) - 260px);
-}
-
-/* 修改document-header样式，添加左侧内边距 */
+/* 改进的文档头部样式 */
 .document-header {
-  background-color: #ffffff;
-  padding: 20px 24px 20px 24px; /* 保持原有上右下内边距，明确指定左内边距 */
-  border-bottom: 1px solid #e5e7eb;
+  position: relative;
+  background-color: transparent;
+  padding: 24px 32px 20px 32px;
+  border-bottom: none;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  position: relative;
-  margin-right: -260px;
   z-index: 15;
-  margin-left: 24px; /* 添加左侧外边距，与下方卡片保持一致 */
-  width: calc(100% + 260px - 24px); /* 调整宽度以补偿左侧外边距 */
+  margin-left: 24px;
+  margin-right: 24px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
+.document-header-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  z-index: -1;
+}
+
+/* 美化面包屑 */
 .breadcrumb-wrapper {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
+.breadcrumb-link,
+.breadcrumb-text {
+  font-size: 0.9rem;
+  color: #6b7280;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.icon-with-space {
+  margin-right: 4px;
+  vertical-align: -0.15em;
+}
+
+/* 文档标题样式增强 */
 .document-title {
-  font-size: 1.8rem;
+  font-size: 1.9rem;
   font-weight: 700;
-  margin: 12px 0;
+  margin: 16px 0;
   color: #111827;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
 }
 
+.title-decoration {
+  display: inline-block;
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(to bottom, var(--primary-color), #818cf8);
+  border-radius: 2px;
+  margin-right: 12px;
+}
+
+/* 改进的元数据样式 */
 .document-meta {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   color: #6b7280;
   font-size: 0.9rem;
+  margin-top: 12px;
+}
+
+.meta-left {
+  display: flex;
+  align-items: center;
 }
 
 .author-info {
@@ -603,163 +746,579 @@ watch(
 
 .author-name {
   margin-left: 8px;
+  font-weight: 500;
 }
 
 .document-tags {
-  margin-left: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .document-tag {
-  margin-right: 8px;
+  background-color: var(--primary-lighter);
+  color: var(--primary-color);
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
+.document-tag:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+/* 改进的操作按钮 */
 .document-actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
+  margin-left: 16px;
 }
 
 .action-btn {
   color: #6b7280;
+  background-color: transparent;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+  width: 36px;
+  height: 36px;
 }
 
-/* 更新文档主体样式，使内容铺满 */
+.action-btn:hover {
+  color: var(--primary-color);
+  background-color: var(--primary-lighter);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(99, 102, 241, 0.2);
+}
+
+.action-btn:active {
+  transform: translateY(0);
+}
+
+/* 文档主体样式 */
 .document-body {
   flex: 1;
   background-color: #ffffff;
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  margin: 24px 24px 24px; /* 修改此处，增加顶部间距为24px */
-  overflow: hidden;
+  margin: 24px;
+  overflow: visible;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--header-height) - 72px); /* 调整高度计算，考虑增加的间距 */
+  min-height: 200px;
+  width: calc(100% - 48px);
 }
 
 /* 优化中间内容区域布局 */
 .document-content {
   flex: 1;
   margin-left: var(--sidebar-width);
+  margin-right: 260px; /* 默认右侧留出目录的宽度 */
   transition: margin-left 0.3s ease, margin-right 0.3s ease;
   display: flex;
   flex-direction: column;
   position: relative;
   min-height: 100vh;
-  margin-right: 260px; /* 为目录预留空间 */
   max-width: calc(100% - var(--sidebar-width) - 260px);
 }
 
 .document-content.sidebar-collapsed {
   margin-left: var(--sidebar-collapsed-width);
-  max-width: calc(100% - var(--sidebar-collapsed-width) - 260px);
+  max-width: calc(100% - var(--sidebar-collapsed-width) - 240px);
 }
 
 .loading-content {
   padding: 24px;
 }
 
+/* ========== 改进的文档底部样式 ========== */
 .document-footer {
-  padding: 24px;
-  border-top: 1px solid #e5e7eb;
+  border-top: none;
+  padding: 0 0 40px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.divider-with-text {
-  position: relative;
-  text-align: center;
-  margin: 24px 0;
+/* 文章结束标记 */
+.article-end-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 0 16px 0;
 }
 
-.divider-with-text::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
+.end-line {
   height: 1px;
-  background-color: #e5e7eb;
-  z-index: 0;
+  flex: 1;
+  background: linear-gradient(to right, rgba(99, 102, 241, 0.05), rgba(99, 102, 241, 0.3), rgba(99, 102, 241, 0.05));
 }
 
-.divider-with-text span {
-  position: relative;
-  background-color: #ffffff;
-  padding: 0 12px;
+.end-badge {
+  display: flex;
+  align-items: center;
   color: #6b7280;
-  z-index: 1;
+  font-size: 14px;
+  padding: 0 16px;
+  font-weight: 500;
 }
 
-.document-reactions {
+.end-icon {
+  color: var(--primary-color);
+  margin-right: 8px;
+}
+
+/* 互动卡片 */
+.interaction-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.3s ease;
+}
+
+.interaction-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.interaction-buttons {
   display: flex;
   justify-content: center;
+  gap: 24px;
+}
+
+.interaction-btn {
+  min-width: 100px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 20px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.btn-text {
+  margin: 0 4px;
+}
+
+.count-badge {
+  background-color: rgba(0, 0, 0, 0.06);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.like-btn {
+  color: var(--danger-color);
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.like-btn:hover, .like-btn.is-liked {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-color: var(--danger-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.15);
+}
+
+.like-btn:active {
+  transform: translateY(-1px);
+}
+
+.comment-btn {
+  color: var(--info-color);
+  background-color: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.comment-btn:hover {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-color: var(--info-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.15);
+}
+
+.comment-btn:active {
+  transform: translateY(-1px);
+}
+
+.share-btn {
+  color: var(--success-color);
+  background-color: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.share-btn:hover {
+  background-color: rgba(16, 185, 129, 0.15);
+  border-color: var(--success-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.15);
+}
+
+.share-btn:active {
+  transform: translateY(-1px);
+}
+
+.article-stats {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+}
+
+.stat-icon {
+  margin-right: 4px;
+}
+
+.stat-divider {
+  margin: 0 12px;
+  color: #d1d5db;
+}
+
+/* 作者资料卡片 */
+.author-profile-card {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin: 0 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.author-profile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.author-profile-header {
+  display: flex;
+  align-items: center;
+}
+
+.author-avatar-wrapper {
+  position: relative;
+  margin-right: 20px;
+}
+
+.author-avatar {
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.author-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: var(--primary-gradient);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 8px;
+  transform: translateY(50%);
+}
+
+.author-info-container {
+  flex: 1;
+}
+
+.author-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.author-name-large {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.follow-btn {
+  border-radius: 16px;
+  height: 32px;
+  background: var(--primary-gradient);
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.follow-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.2);
+}
+
+.author-bio {
+  color: #4b5563;
+  font-size: 14px;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.author-stats {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.author-recent-articles {
+  margin-top: 4px;
+}
+
+.recent-articles-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: #374151;
+}
+
+.recent-article-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recent-article-item {
+  display: flex;
+  align-items: center;
+}
+
+.article-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.recent-article-link {
+  font-size: 14px;
+  color: #111827;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-article-link:hover {
+  color: var(--primary-color);
+}
+
+/* 上下篇导航 */
+.document-nav-buttons {
+  display: flex;
+  margin: 0 24px;
+  gap: 16px;
+}
+
+.nav-btn {
+  flex: 1;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  padding: 0 20px;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+  background-color: var(--primary-lighter);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(99, 102, 241, 0.1);
+}
+
+.nav-spacer {
+  width: 16px;
+}
+
+.nav-label {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.nav-title {
+  color: #111827;
+  font-weight: 500;
+  font-size: 14px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prev-btn {
+  justify-content: flex-start;
+}
+
+.next-btn {
+  justify-content: flex-end;
+}
+
+/* 评论区样式 */
+.comments-section {
+  margin: 0 24px;
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.comments-header {
+  margin-bottom: 20px;
+}
+
+.comments-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+  display: flex;
+  align-items: center;
+}
+
+.comments-count {
+  background-color: var(--primary-lighter);
+  color: var(--primary-color);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+}
+
+.comment-editor {
+  display: flex;
   gap: 16px;
   margin-bottom: 24px;
 }
 
-.reaction-btn {
-  min-width: 100px;
+.comment-avatar {
+  flex-shrink: 0;
 }
 
-.like-btn {
-  color: #ef4444;
-}
-
-.comment-btn {
-  color: #3b82f6;
-}
-
-.author-card {
+.comment-input-wrapper {
+  flex: 1;
   display: flex;
-  align-items: center;
-  padding: 16px;
-  background-color: #f9fafb;
+  flex-direction: column;
+}
+
+.comment-input {
+  margin-bottom: 12px;
   border-radius: 8px;
 }
 
-.author-info-extended {
-  flex: 1;
-  margin-left: 16px;
+.comment-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
-.author-name-large {
-  font-weight: 600;
-  margin-bottom: 4px;
+.submit-comment-btn {
+  border-radius: 16px;
+  height: 32px;
+  background: var(--primary-gradient);
+  border: none;
+  transition: all 0.2s ease;
 }
 
-.author-bio {
+.submit-comment-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.2);
+}
+
+.empty-comments {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.empty-tip {
   color: #6b7280;
-  font-size: 0.9rem;
-}
-
-.follow-btn {
-  min-width: 100px;
+  font-size: 14px;
 }
 
 /* 暗色主题 */
 .dark-mode {
   --bg-body: #111827;
+  --primary-color: #818cf8;
+  --primary-light: rgba(129, 140, 248, 0.2);
+  --primary-lighter: rgba(129, 140, 248, 0.1);
+  --primary-gradient: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+}
+
+.dark-mode .document-header-bg {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
 }
 
 .dark-mode .category-sidebar,
-.dark-mode .document-header,
 .dark-mode .document-body,
-.dark-mode .sidebar-toggle {
+.dark-mode .interaction-card,
+.dark-mode .author-profile-card,
+.dark-mode .nav-btn,
+.dark-mode .comments-section {
   background-color: #1f2937;
   border-color: #374151;
 }
 
 .dark-mode .category-title,
-.dark-mode .document-title {
+.dark-mode .document-title,
+.dark-mode .author-name-large,
+.dark-mode .recent-articles-title,
+.dark-mode .nav-title,
+.dark-mode .comments-title {
   color: #f9fafb;
 }
 
 .dark-mode .category-stats,
 .dark-mode .article-meta,
 .dark-mode .meta-item,
-.dark-mode .document-meta {
+.dark-mode .document-meta,
+.dark-mode .breadcrumb-text,
+.dark-mode .breadcrumb-link,
+.dark-mode .end-badge,
+.dark-mode .author-bio,
+.dark-mode .article-stats,
+.dark-mode .author-stats,
+.dark-mode .nav-label,
+.dark-mode .empty-tip {
   color: #9ca3af;
+}
+
+.dark-mode .recent-article-link {
+  color: #e5e7eb;
 }
 
 .dark-mode .article-title {
   color: #e5e7eb;
+}
+
+.dark-mode .author-avatar {
+  border-color: #1f2937;
 }
 
 .dark-mode .article-item:hover {
@@ -767,8 +1326,49 @@ watch(
 }
 
 .dark-mode .article-item.active {
-  background-color: #3730a3;
+  background-color: rgba(129, 140, 248, 0.2);
   border-left-color: #818cf8;
+}
+
+.dark-mode .document-tag {
+  background-color: rgba(129, 140, 248, 0.15);
+  color: #a5b4fc;
+}
+
+.dark-mode .action-btn,
+.dark-mode .end-line {
+  color: #9ca3af;
+  border-color: #4b5563;
+}
+
+.dark-mode .like-btn {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.dark-mode .comment-btn {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark-mode .share-btn {
+  background-color: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.dark-mode .action-btn:hover {
+  color: #a5b4fc;
+  background-color: rgba(129, 140, 248, 0.15);
+  border-color: #818cf8;
+}
+
+.dark-mode .nav-btn:hover {
+  background-color: #2d3748;
+  border-color: #818cf8;
+}
+
+.dark-mode .end-line {
+  background: linear-gradient(to right, rgba(129, 140, 248, 0.05), rgba(129, 140, 248, 0.3), rgba(129, 140, 248, 0.05));
 }
 
 .dark-mode .divider-with-text::before {
@@ -780,13 +1380,94 @@ watch(
   color: #9ca3af;
 }
 
-.dark-mode .author-card {
-  background-color: #2d3748;
-}
-
 /* 响应式样式 */
 @media (max-width: 1024px) {
+  .document-header {
+    flex-direction: column;
+  }
+
   .document-actions {
+    margin-left: 0;
+    margin-top: 16px;
+    align-self: flex-end;
+  }
+
+  .document-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .document-tags {
+    margin-left: 0;
+  }
+
+  .interaction-buttons {
+    flex-wrap: wrap;
+  }
+
+  .document-nav-buttons {
+    flex-direction: column;
+  }
+
+  .author-profile-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .author-avatar-wrapper {
+    margin-right: 0;
+    margin-bottom: 16px;
+  }
+
+  .author-name-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .document-header {
+    padding: 20px 16px;
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .document-title {
+    font-size: 1.6rem;
+  }
+
+  .action-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .interaction-card,
+  .author-profile-card,
+  .comments-section,
+  .document-nav-buttons {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .interaction-buttons {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .interaction-btn {
+    width: 100%;
+  }
+}
+
+@media print {
+  .category-sidebar,
+  .interaction-card,
+  .author-profile-card,
+  .document-nav-buttons,
+  .comments-section,
+  .article-end-marker {
     display: none;
   }
 }
