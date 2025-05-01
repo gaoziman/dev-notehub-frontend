@@ -231,28 +231,33 @@
         <!-- 右侧主内容区域 -->
         <n-grid-item span="9">
           <n-card class="main-content-card">
-            <!-- 选项卡 -->
+            <!-- 选项卡和视图控制 -->
             <div class="view-controls">
-              <n-tabs
-                  v-model:value="activeTab"
-                  type="line"
-                  size="medium"
-                  animated
-              >
-                <n-tab-pane name="all" tab="所有文档"/>
-                <n-tab-pane name="recent" tab="最近访问"/>
-                <n-tab-pane name="starred" tab="收藏文档"/>
-              </n-tabs>
+              <div class="tabs-container">
+                <n-tabs
+                    v-model:value="activeTab"
+                    type="line"
+                    size="medium"
+                    animated
+                >
+                  <n-tab-pane name="all" tab="所有文档"/>
+                  <n-tab-pane name="recent" tab="最近访问"/>
+                  <n-tab-pane name="starred" tab="收藏文档"/>
+                </n-tabs>
+              </div>
 
               <div class="view-options">
                 <n-space>
+                  <!-- 排序选项 -->
                   <n-popselect
                       v-model:value="sortOption"
                       :options="sortOptions"
                       trigger="click"
                   >
-                    <n-button tertiary round>
-                      <icon-font type="icon-24gl-swapVertical3"/>
+                    <n-button tertiary round size="small">
+                      <template #icon>
+                        <icon-font type="icon-24gl-swapVertical3"/>
+                      </template>
                       排序
                     </n-button>
                   </n-popselect>
@@ -260,109 +265,89 @@
               </div>
             </div>
 
-            <!-- 文档网格视图 -->
+            <!-- 文档卡片 - 重新设计 -->
             <div class="document-grid">
-              <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen">
+              <n-empty v-if="displayedDocuments.length === 0" description="暂无符合条件的文档" />
+              <n-grid :cols="4" :x-gap="16" :y-gap="16" responsive="screen" v-else>
                 <n-grid-item v-for="doc in displayedDocuments" :key="doc.id">
-                  <n-card class="document-card" hoverable @click="openDocument(doc)">
+                  <div class="document-card" @click="openDocument(doc)">
+                    <!-- 文档类型标识与收藏按钮 -->
                     <div class="document-card-header">
-                      <div class="document-icon-container" :class="getDocumentClass(doc.type)">
-                        <icon-font :type="getDocumentIcon(doc.type)" :size="25"/>
+                      <div class="document-type-icon" :class="getDocumentClass(doc.type)">
+                        <icon-font :type="getDocumentIcon(doc.type)" :size="20"/>
                       </div>
-                      <div class="document-title-container">
-                        <div class="document-title">{{ doc.title }}</div>
-                        <div class="document-description">{{ doc.description }}</div>
-                      </div>
-                    </div>
-
-                    <div class="document-card-meta">
-                      <div class="document-tags">
-                        <n-tag
-                            v-if="doc.category"
-                            size="small"
-                            :color="getCategoryColor(doc.category)"
-                            :bordered="false"
-                        >
-                          {{ doc.category }}
-                        </n-tag>
-                      </div>
-                      <div class="document-time">
-                        {{ doc.lastModified }}
+                      <div class="document-star" @click.stop="toggleStar(doc)">
+                        <icon-font
+                            :type="doc.starred ? 'icon-a-shoucang-yishoucang' : 'icon-shoucang'"
+                            :size="18"
+                            :color="doc.starred ? '#f59e0b' : '#d9d9d9'"
+                        />
                       </div>
                     </div>
 
+                    <!-- 文档信息 -->
+                    <div class="document-card-body">
+                      <div class="document-title" :title="doc.title">{{ doc.title }}</div>
+                      <div class="document-description">
+                        {{ doc.description.length > 80 ? doc.description.substring(0, 80) + '...' : doc.description }}
+                      </div>
+                    </div>
+
+                    <!-- 标签区域 -->
+                    <div class="document-tags">
+                      <n-tag
+                          v-if="doc.category"
+                          size="small"
+                          :color="getCategoryColor(doc.category)"
+                          class="document-category-tag"
+                      >
+                        {{ doc.category }}
+                      </n-tag>
+                      <n-tag
+                          v-for="tag in doc.tags.slice(0, 2)"
+                          :key="tag"
+                          size="small"
+                          class="document-tag"
+                      >
+                        {{ tag }}
+                      </n-tag>
+                      <span v-if="doc.tags.length > 2" class="more-tags">+{{ doc.tags.length - 2 }}</span>
+                    </div>
+
+                    <!-- 文档元信息 -->
+                    <div class="document-meta">
+                      <div class="document-author">
+                        {{ doc.createdBy }}
+                      </div>
+                      <div class="document-date">{{ doc.lastModified }}</div>
+                    </div>
+
+                    <!-- 文档底部统计与操作 -->
                     <div class="document-card-footer">
-                      <div class="document-actions">
-                        <n-button
-                            quaternary
-                            circle
-                            size="small"
-                            @click.stop="editDocument(doc)"
-                        >
-                          <icon-font type="icon-icon_edit1"/>
-                        </n-button>
-                        <n-button
-                            quaternary
-                            circle
-                            size="small"
-                            @click.stop="commentDocument(doc)"
-                        >
-                          <icon-font type="icon-xiaoxi"/>
-                        </n-button>
+                      <div class="document-stats">
+                        <span class="document-views">
+                          <icon-font type="icon-a-yuedu1" :size="14" />
+                          {{ doc.views }}
+                        </span>
+                        <span class="document-size">{{ doc.size }}</span>
                       </div>
+
                       <div class="document-actions">
-                        <n-button
-                            quaternary
-                            circle
-                            size="small"
-                            @click.stop="toggleStar(doc)"
-                            :class="{ 'active-star': doc.starred }"
-                        >
-                          <icon-font :type="doc.starred ? 'icon-a-shoucang-yishoucang' : 'icon-shoucang'"/>
+                        <n-button quaternary circle size="small" @click.stop="editDocument(doc)" class="action-button">
+                          <icon-font type="icon-icon_edit1" :size="16" />
                         </n-button>
-                        <n-button
-                            quaternary
-                            circle
-                            size="small"
-                            @click.stop="shareDocument(doc)"
+                        <n-dropdown
+                            trigger="click"
+                            :options="getDocActionOptions(doc)"
+                            @select="key => handleDropdownAction(key, doc)"
                         >
-                          <icon-font type="icon-fenxiang2"/>
-                        </n-button>
-                        <n-popover trigger="click" placement="bottom">
-                          <template #trigger>
-                            <n-button
-                                quaternary
-                                circle
-                                size="small"
-                                @click.stop
-                            >
-                              <icon-font type="icon-gengduo3"/>
-                            </n-button>
-                          </template>
-                          <n-space vertical>
-                            <n-button text @click="downloadDocument(doc)">
-                              <template #icon>
-                                <icon-font type="icon-xiazai2"/>
-                              </template>
-                              下载
-                            </n-button>
-                            <n-button text @click="duplicateDocument(doc)">
-                              <template #icon>
-                                <icon-font type="icon-fuzhi1"/>
-                              </template>
-                              复制
-                            </n-button>
-                            <n-button text type="error" @click="deleteDocument(doc)">
-                              <template #icon>
-                                <icon-font type="icon-shanchu1"/>
-                              </template>
-                              删除
-                            </n-button>
-                          </n-space>
-                        </n-popover>
+                          <n-button quaternary circle size="small" @click.stop class="action-button">
+                            <icon-font type="icon-gengduo3" :size="16" />
+                          </n-button>
+                        </n-dropdown>
                       </div>
                     </div>
-                  </n-card>
+                  </div>
                 </n-grid-item>
               </n-grid>
             </div>
@@ -374,7 +359,7 @@
                   :page-count="totalPages"
                   :page-slot="5"
                   show-size-picker
-                  :page-sizes="[6, 9, 12, 15]"
+                  :page-sizes="[8, 12, 16, 20]"
                   v-model:page-size="pageSize"
                   size="medium"
               />
@@ -384,27 +369,92 @@
             </div>
           </n-card>
 
-          <!-- 最近访问记录 -->
-          <n-card title="最近访问" class="recent-visits-card">
-            <template #header-extra>
-              <n-button text type="primary" size="small">
-                查看全部
-                <template #icon>
-                  <icon-font type="icon-chakanquanburenyuan"/>
-                </template>
-              </n-button>
+          <!-- 文档预览卡片 -->
+          <n-card v-if="selectedDocument" class="preview-card">
+            <template #header>
+              <div class="preview-header">
+                <div class="preview-title">
+                  <icon-font :type="getDocumentIcon(selectedDocument.type)" :size="22" />
+                  <span>{{ selectedDocument.title }}</span>
+                </div>
+                <n-space>
+                  <n-button size="small" type="primary" @click="openDocument(selectedDocument)">
+                    查看全文
+                  </n-button>
+                  <n-button size="small" @click="selectedDocument = null">
+                    关闭预览
+                  </n-button>
+                </n-space>
+              </div>
             </template>
 
-            <n-data-table
-                :columns="recentColumns"
-                :data="recentVisits"
-                :pagination="recentPagination"
-                :bordered="false"
-            />
+            <div class="preview-content">
+              <n-skeleton v-if="previewLoading" :repeat="3" />
+              <div v-else>
+                <div class="preview-info">
+                  <div class="preview-meta">
+                    <n-tag :color="getCategoryColor(selectedDocument.category)">{{ selectedDocument.category }}</n-tag>
+                    <span class="preview-date">修改于: {{ selectedDocument.lastModified }}</span>
+                  </div>
+                  <div class="preview-tags">
+                    <n-tag
+                        v-for="tag in selectedDocument.tags"
+                        :key="tag"
+                        size="small"
+                        type="info"
+                        :bordered="false"
+                        style="margin-right: 8px;"
+                    >
+                      {{ tag }}
+                    </n-tag>
+                  </div>
+                </div>
+                <div class="preview-description">
+                  {{ selectedDocument.description }}
+                </div>
+                <div class="preview-actions">
+                  <n-space justify="end">
+                    <n-button size="small" @click="editDocument(selectedDocument)">
+                      <template #icon><icon-font type="icon-icon_edit1" /></template>
+                      编辑
+                    </n-button>
+                    <n-button size="small" @click="downloadDocument(selectedDocument)">
+                      <template #icon><icon-font type="icon-xiazai2" /></template>
+                      下载
+                    </n-button>
+                    <n-button size="small" @click="shareDocument(selectedDocument)">
+                      <template #icon><icon-font type="icon-fenxiang2" /></template>
+                      分享
+                    </n-button>
+                  </n-space>
+                </div>
+              </div>
+            </div>
           </n-card>
         </n-grid-item>
       </n-grid>
     </div>
+
+    <!-- 添加分类模态框 -->
+    <n-modal v-model:show="showAddCategoryModal" preset="card" title="添加新分类" size="small">
+      <n-form :model="newCategoryForm" label-placement="left" label-width="80">
+        <n-form-item label="分类名称" path="name">
+          <n-input v-model:value="newCategoryForm.name" placeholder="请输入分类名称" />
+        </n-form-item>
+        <n-form-item label="图标" path="icon">
+          <n-select v-model:value="newCategoryForm.icon" :options="iconOptions" placeholder="选择图标" />
+        </n-form-item>
+        <n-form-item label="颜色" path="color">
+          <n-color-picker v-model:value="newCategoryForm.color" />
+        </n-form-item>
+      </n-form>
+      <div style="display: flex; justify-content: flex-end">
+        <n-space>
+          <n-button @click="showAddCategoryModal = false">取消</n-button>
+          <n-button type="primary" @click="addNewCategory">确定</n-button>
+        </n-space>
+      </div>
+    </n-modal>
   </div>
 </template>
 
@@ -414,29 +464,50 @@ import {useRoute, useRouter} from 'vue-router';
 import IconFont from "@/components/common/IconFont.vue";
 
 const route = useRoute();
-const router = useRouter()
+const router = useRouter();
 
 // 搜索和筛选
-const searchQuery = ref('')
-const selectedCategory = ref('all')
-const activeTab = ref('all')
-const currentPage = ref(1)
-const pageSize = ref(9) // 默认每页显示9个文档
-const sortOption = ref('recent')
+const searchQuery = ref('');
+const selectedCategory = ref('all');
+const activeTab = ref('all');
+const currentPage = ref(1);
+const pageSize = ref(12); // 默认每页显示12个文档
+const sortOption = ref('recent');
+const selectedDocument = ref(null);
+const previewLoading = ref(false);
 
 // 显示控制
-const showAddCategoryModal = ref(false)
-const showTagInput = ref(false)
+const showAddCategoryModal = ref(false);
+const showTagInput = ref(false);
+
+// 新分类表单
+const newCategoryForm = reactive({
+  name: '',
+  icon: '',
+  color: '#6366f1'
+});
+
+// 图标选项
+const iconOptions = [
+  { label: '文件夹', value: 'icon-wendangwenjian' },
+  { label: 'Java', value: 'icon-java' },
+  { label: 'Spring', value: 'icon-spring' },
+  { label: 'MySQL', value: 'icon-mysql' },
+  { label: 'Redis', value: 'icon-redis' },
+  { label: '消息队列', value: 'icon-mqxiaoxiduilieMQ' },
+  { label: '前端', value: 'icon-html' },
+  { label: '工具', value: 'icon-tools' }
+];
 
 // 去上传文件页面
 const goToUploadPage = () => {
-  router.push({name : 'UploadDocument'})
-}
+  router.push({name : 'UploadDocument'});
+};
 
 // 去新建文章页面
 const goToEditorPage = () =>{
-  router.push({ name: 'CreateDocument' })
-}
+  router.push({ name: 'CreateDocument' });
+};
 
 // 筛选条件
 const filters = reactive({
@@ -448,19 +519,11 @@ const filters = reactive({
   },
   dateRange: 'all',
   customDateRange: null
-})
+});
 
 // 标签管理
-const selectedTags = ref(['Java', 'Spring', '并发编程'])
-const newTag = ref('')
-
-// 新建文档表单
-const newDocForm = reactive({
-  title: '',
-  category: null,
-  tags: [],
-  template: 'blank'
-})
+const selectedTags = ref(['Java', 'Spring', '并发编程']);
+const newTag = ref('');
 
 // 统计数据
 const stats = reactive({
@@ -472,39 +535,48 @@ const stats = reactive({
   pdfDocsGrowth: 4,
   storageUsed: '346 MB',
   storageRemaining: '4.7 GB'
-})
+});
 
-// 文档数据 - 增加了更多示例文档
+// 文档数据
 const documents = ref([
   {
     id: 1,
     title: 'SpringBoot 核心原理解析',
     description: 'SpringBoot 自动配置、starter 机制、条件注解等核心特性的深入剖析。',
     type: 'markdown',
-    category: 'SpringBoot',
+    category: 'Java',
     lastModified: '今天 14:30',
     starred: false,
-    tags: ['SpringBoot', '源码分析']
+    tags: ['SpringBoot', '源码分析'],
+    size: '256 KB',
+    createdBy: '张三',
+    views: 128
   },
   {
     id: 2,
     title: 'RabbitMQ高级特性与实战',
     description: '本指南详细介绍了 RabbitMQ 的高级特性，包括消息可靠性保证、死信队列、延迟队列等实现方案。',
     type: 'pdf',
-    category: 'RabbitMQ',
+    category: 'Java',
     lastModified: '昨天',
     starred: true,
-    tags: ['RabbitMQ', '消息队列']
+    tags: ['RabbitMQ', '消息队列'],
+    size: '1.4 MB',
+    createdBy: '李四',
+    views: 89
   },
   {
     id: 3,
     title: 'MySQL 索引优化技巧',
     description: '详细介绍了 MySQL 的各种索引类型及其适用场景，索引设计原则，以及常见的索引优化方法。',
     type: 'markdown',
-    category: 'MySQL',
+    category: 'Java',
     lastModified: '2天前',
     starred: false,
-    tags: ['MySQL', '性能优化']
+    tags: ['MySQL', '性能优化'],
+    size: '190 KB',
+    createdBy: '王五',
+    views: 245
   },
   {
     id: 4,
@@ -514,7 +586,10 @@ const documents = ref([
     category: 'Java',
     lastModified: '3天前',
     starred: false,
-    tags: ['Java', '并发编程']
+    tags: ['Java', '并发编程'],
+    size: '320 KB',
+    createdBy: '赵六',
+    views: 178
   },
   {
     id: 5,
@@ -524,7 +599,10 @@ const documents = ref([
     category: 'Redis',
     lastModified: '上周',
     starred: false,
-    tags: ['Redis', '源码分析']
+    tags: ['Redis', '源码分析'],
+    size: '2.8 MB',
+    createdBy: '张三',
+    views: 315
   },
   {
     id: 6,
@@ -534,7 +612,10 @@ const documents = ref([
     category: 'MyBatis',
     lastModified: '上周',
     starred: false,
-    tags: ['MyBatis', '源码分析']
+    tags: ['MyBatis', '源码分析'],
+    size: '280 KB',
+    createdBy: '李四',
+    views: 156
   },
   {
     id: 7,
@@ -544,7 +625,10 @@ const documents = ref([
     category: 'Java',
     lastModified: '2周前',
     starred: true,
-    tags: ['Java', 'JVM']
+    tags: ['Java', 'JVM'],
+    size: '450 KB',
+    createdBy: '王五',
+    views: 423
   },
   {
     id: 8,
@@ -554,7 +638,10 @@ const documents = ref([
     category: 'Spring',
     lastModified: '2周前',
     starred: false,
-    tags: ['Spring', '安全']
+    tags: ['Spring', '安全'],
+    size: '310 KB',
+    createdBy: '赵六',
+    views: 187
   },
   {
     id: 9,
@@ -564,94 +651,25 @@ const documents = ref([
     category: 'DevOps',
     lastModified: '3周前',
     starred: false,
-    tags: ['Docker', 'DevOps']
+    tags: ['Docker', 'DevOps'],
+    size: '3.2 MB',
+    createdBy: '张三',
+    views: 276
   },
   {
     id: 10,
-    title: 'Kubernetes入门与实践',
-    description: 'K8s核心概念及实战应用，包括Pod编排、服务发现、配置管理、持久化存储等关键功能。',
+    title: 'Elasticsearch 全文检索与聚合查询',
+    description: '详细介绍Elasticsearch的索引设计、查询优化、分词器配置、复杂聚合分析以及与Spring Boot的集成方案。',
     type: 'markdown',
-    category: 'DevOps',
-    lastModified: '1个月前',
-    starred: false,
-    tags: ['Kubernetes', '容器编排']
-  },
-  {
-    id: 11,
-    title: 'Elasticsearch 搜索引擎优化',
-    description: '全文检索、复杂聚合查询、分词器配置、性能调优等Elasticsearch高级应用实践。',
-    type: 'pdf',
     category: 'ElasticStack',
-    lastModified: '1个月前',
+    lastModified: '1天前',
     starred: true,
-    tags: ['搜索引擎', 'ELK']
-  },
-  {
-    id: 12,
-    title: 'React Hooks 最佳实践',
-    description: '函数式组件与Hooks的深入应用，包括自定义Hooks、性能优化、状态管理等前端开发技巧。',
-    type: 'markdown',
-    category: '前端',
-    lastModified: '1个月前',
-    starred: false,
-    tags: ['React', '前端框架']
-  },
-  {
-    id: 13,
-    title: 'Vue3 组合式API详解',
-    description: 'Vue3新特性与组合式API的实战指南，包括响应式系统原理、生命周期钩子、性能优化等核心内容。',
-    type: 'markdown',
-    category: '前端',
-    lastModified: '2个月前',
-    starred: true,
-    tags: ['Vue', '前端框架']
-  },
-  {
-    id: 14,
-    title: 'MongoDB高级查询与聚合',
-    description: '深入学习MongoDB的高级查询技术，聚合管道、事务处理、分片集群等NoSQL数据库核心应用。',
-    type: 'pdf',
-    category: 'NoSQL',
-    lastModified: '2个月前',
-    starred: false,
-    tags: ['MongoDB', '数据库']
-  },
-  {
-    id: 15,
-    title: 'Git工作流与团队协作',
-    description: '企业级Git分支管理策略、高效团队协作流程、版本控制最佳实践指南。',
-    type: 'markdown',
-    category: '工具',
-    lastModified: '2个月前',
-    starred: false,
-    tags: ['Git', '版本控制']
-  },
-])
-
-// 最近访问记录
-const recentVisits = ref([
-  {
-    id: 1,
-    title: 'SpringBoot 核心原理解析',
-    category: 'SpringBoot',
-    type: 'Markdown',
-    visitTime: '今天 10:45'
-  },
-  {
-    id: 2,
-    title: 'RabbitMQ高级特性与实战.pdf',
-    category: 'RabbitMQ',
-    type: 'PDF',
-    visitTime: '昨天 15:30'
-  },
-  {
-    id: 3,
-    title: 'MySQL 索引优化技巧',
-    category: 'MySQL',
-    type: 'Markdown',
-    visitTime: '2天前'
+    tags: ['ElasticSearch', '全文检索', '数据分析'],
+    size: '380 KB',
+    createdBy: '李四',
+    views: 219
   }
-])
+]);
 
 // 分类选项
 const categoryOptions = [
@@ -715,7 +733,33 @@ const categoryOptions = [
     icon: () => h(IconFont, {type: 'icon-wendangwenjian'}),
     extra: '15'
   }
-]
+];
+
+// 获取文档操作选项
+function getDocActionOptions(doc) {
+  return [
+    {
+      label: '下载',
+      key: 'download',
+      icon: () => h(IconFont, {type: 'icon-xiazai2'})
+    },
+    {
+      label: '分享',
+      key: 'share',
+      icon: () => h(IconFont, {type: 'icon-fenxiang2'})
+    },
+    {
+      label: doc.starred ? '取消收藏' : '收藏',
+      key: 'star',
+      icon: () => h(IconFont, {type: doc.starred ? 'icon-a-shoucang-yishoucang' : 'icon-shoucang'})
+    },
+    {
+      label: '删除',
+      key: 'delete',
+      icon: () => h(IconFont, {type: 'icon-shanchu1'})
+    }
+  ];
+}
 
 // 下拉选择选项
 const categorySelectOptions = categoryOptions
@@ -723,7 +767,7 @@ const categorySelectOptions = categoryOptions
     .map(item => ({
       label: item.label,
       value: item.key
-    }))
+    }));
 
 // 排序选项
 const sortOptions = [
@@ -731,8 +775,9 @@ const sortOptions = [
   {label: '名称 A-Z', value: 'name-asc'},
   {label: '名称 Z-A', value: 'name-desc'},
   {label: '创建时间', value: 'created'},
-  {label: '文件大小', value: 'size'}
-]
+  {label: '文件大小', value: 'size'},
+  {label: '阅读量', value: 'views-desc'}
+];
 
 // 更多操作选项
 const moreOptions = [
@@ -756,190 +801,145 @@ const moreOptions = [
     key: 'trash',
     icon: () => h(IconFont, {type: 'icon-lajixiang'})
   }
-]
-
-// 最近访问表格列
-const recentColumns = [
-  {
-    title: '文档名称',
-    key: 'title',
-    render(row) {
-      let iconType
-      if (row.type === 'Markdown') {
-        iconType = 'icon-a-IconMarkDown'
-      } else if (row.type === 'PDF') {
-        iconType = 'icon-icon_pdf1'
-      } else {
-        iconType = 'icon-icon_wendang1'
-      }
-
-      return h('div', {class: 'recent-file-cell'}, [
-        h('div', {class: 'recent-file-icon'}, [
-          h(IconFont, {type: iconType,size:20})
-        ]),
-        h('span', row.title)
-      ])
-    }
-  },
-  {
-    title: '分类',
-    key: 'category',
-    render(row) {
-      return h('n-tag', {
-        size: 'small',
-        color: getCategoryColor(row.category)
-      }, {default: () => row.category})
-    }
-  },
-  {
-    title: '类型',
-    key: 'type',
-    width: 100
-  },
-  {
-    title: '访问时间',
-    key: 'visitTime',
-    width: 120
-  },
-  {
-    title: '操作',
-    key: 'actions',
-    width: 150,
-    render(row) {
-      return h('div', {class: 'recent-actions-cell'}, [
-        h('n-button', {
-          text: true,
-          type: 'primary',
-          size: 'small',
-          onClick: () => {
-            viewDocument(row)
-          }
-        }, '查看'),
-        h('span', {style: 'margin: 0 4px;color: #ddd'}, '|'),
-        h('n-button', {
-          text: true,
-          type: 'primary',
-          size: 'small',
-          onClick: () => row.type === 'Markdown' ? editDocument(row) : downloadDocument(row)
-        }, row.type === 'Markdown' ? '编辑' : '下载')
-      ])
-    }
-  }
-]
-
-// 最近访问表格分页
-const recentPagination = {
-  pageSize: 3,
-  simple: true,
-  page: 1
-}
+];
 
 // 计算属性 - 所有筛选后的文档
 const filteredDocuments = computed(() => {
-  let result = [...documents.value]
+  let result = [...documents.value];
 
   // 应用搜索条件
   if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
+    const query = searchQuery.value.toLowerCase();
     result = result.filter(doc =>
         doc.title.toLowerCase().includes(query) ||
         doc.description.toLowerCase().includes(query)
-    )
+    );
   }
 
   // 应用分类筛选
   if (selectedCategory.value !== 'all') {
     result = result.filter(doc => {
-      const category = doc.category.toLowerCase().replace(/\s+/g, '-')
-      return category === selectedCategory.value.toLowerCase()
-    })
+      const category = doc.category.toLowerCase().replace(/\s+/g, '-');
+      return category === selectedCategory.value.toLowerCase();
+    });
   }
 
   // 应用标签筛选
   if (selectedTags.value.length > 0) {
     result = result.filter(doc =>
         doc.tags.some(tag => selectedTags.value.includes(tag))
-    )
+    );
+  }
+
+  // 应用标签页筛选
+  if (activeTab.value === 'recent') {
+    // 假设最近文档是最近修改的前5个
+    const recentIds = [1, 2, 3, 4, 5]; // 这里应该从实际的访问记录中获取
+    result = result.filter(doc => recentIds.includes(doc.id));
+  } else if (activeTab.value === 'starred') {
+    result = result.filter(doc => doc.starred);
   }
 
   // 应用文件类型筛选
   if (!filters.types.markdown || !filters.types.pdf || !filters.types.image || !filters.types.other) {
     result = result.filter(doc => {
-      if (doc.type === 'markdown') return filters.types.markdown
-      if (doc.type === 'pdf') return filters.types.pdf
-      if (doc.type === 'image') return filters.types.image
-      return filters.types.other
-    })
+      if (doc.type === 'markdown') return filters.types.markdown;
+      if (doc.type === 'pdf') return filters.types.pdf;
+      if (doc.type === 'image') return filters.types.image;
+      return filters.types.other;
+    });
   }
 
   // 应用日期范围筛选
   if (filters.dateRange !== 'all') {
-    const now = new Date()
-    let compareDate = new Date()
+    const now = new Date();
+    let compareDate = new Date();
 
     if (filters.dateRange === 'today') {
-      compareDate.setHours(0, 0, 0, 0)
+      compareDate.setHours(0, 0, 0, 0);
     } else if (filters.dateRange === 'week') {
-      compareDate.setDate(now.getDate() - 7)
+      compareDate.setDate(now.getDate() - 7);
     } else if (filters.dateRange === 'month') {
-      compareDate.setMonth(now.getMonth() - 1)
+      compareDate.setMonth(now.getMonth() - 1);
     }
 
     result = result.filter(doc => {
       // 这里应该有实际日期比较逻辑，但因为我们的示例数据是字符串,
       // 所以我们用一些启发式方法来模拟
-      const lastModified = doc.lastModified
-      if (filters.dateRange === 'today' && lastModified.includes('今天')) return true
+      const lastModified = doc.lastModified;
+      if (filters.dateRange === 'today' && lastModified.includes('今天')) return true;
       if (filters.dateRange === 'week' && (
           lastModified.includes('今天') ||
           lastModified.includes('昨天') ||
           lastModified.includes('天前') && parseInt(lastModified) < 7
-      )) return true
-      if (filters.dateRange === 'month' && !lastModified.includes('周前')) return true
+      )) return true;
+      if (filters.dateRange === 'month' && !lastModified.includes('周前')) return true;
 
-      return false
-    })
+      return false;
+    });
   }
 
   // 应用排序
   if (sortOption.value === 'name-asc') {
-    result.sort((a, b) => a.title.localeCompare(b.title))
+    result.sort((a, b) => a.title.localeCompare(b.title));
   } else if (sortOption.value === 'name-desc') {
-    result.sort((a, b) => b.title.localeCompare(a.title))
+    result.sort((a, b) => b.title.localeCompare(a.title));
+  } else if (sortOption.value === 'views-desc') {
+    result.sort((a, b) => b.views - a.views);
+  } else if (sortOption.value === 'size') {
+    // 这里假设size字段是字符串，如"256 KB"
+    // 实际实现应该转换为字节数进行比较
+    result.sort((a, b) => {
+      const aValue = parseFileSize(a.size);
+      const bValue = parseFileSize(b.size);
+      return bValue - aValue;
+    });
   }
 
-  return result
-})
+  return result;
+});
+
+// 解析文件大小的辅助函数
+function parseFileSize(sizeStr) {
+  if (!sizeStr) return 0;
+  const value = parseFloat(sizeStr);
+  if (sizeStr.includes('KB')) return value * 1024;
+  if (sizeStr.includes('MB')) return value * 1024 * 1024;
+  if (sizeStr.includes('GB')) return value * 1024 * 1024 * 1024;
+  return value;
+}
 
 // 当前显示的文档（带分页）
 const displayedDocuments = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
 
   // 设置分页信息
-  displayRange.start = start + 1
-  displayRange.end = Math.min(end, filteredDocuments.value.length)
+  displayRange.start = start + 1;
+  displayRange.end = Math.min(end, filteredDocuments.value.length);
 
-  return filteredDocuments.value.slice(start, end)
-})
+  return filteredDocuments.value.slice(start, end);
+});
 
 // 分页相关计算
-const totalDocuments = computed(() => filteredDocuments.value.length)
-const totalPages = computed(() => Math.ceil(totalDocuments.value / pageSize.value))
+const totalDocuments = computed(() => filteredDocuments.value.length);
+const totalPages = computed(() => Math.ceil(totalDocuments.value / pageSize.value));
 const displayRange = reactive({
   start: 1,
   end: Math.min(pageSize.value, totalDocuments.value)
-})
+});
 
 // 获取文档图标
 function getDocumentIcon(type) {
   switch (type) {
     case 'markdown':
-      return 'icon-a-IconMarkDown'
+      return 'icon-a-IconMarkDown';
     case 'pdf':
-      return 'icon-icon_pdf1'
+      return 'icon-icon_pdf1';
+    case 'image':
+      return 'icon-tupian';
     default:
-      return 'icon-icon_wendang1'
+      return 'icon-icon_wendang1';
   }
 }
 
@@ -947,11 +947,13 @@ function getDocumentIcon(type) {
 function getDocumentClass(type) {
   switch (type) {
     case 'markdown':
-      return 'markdown-doc'
+      return 'markdown-doc';
     case 'pdf':
-      return 'pdf-doc'
+      return 'pdf-doc';
+    case 'image':
+      return 'image-doc';
     default:
-      return 'default-doc'
+      return 'default-doc';
   }
 }
 
@@ -971,89 +973,123 @@ function getCategoryColor(category) {
     '前端': {color: '#8E24AA', textColor: '#fff'},
     'NoSQL': {color: '#00897B', textColor: '#fff'},
     '工具': {color: '#546E7A', textColor: '#fff'}
-  }
+  };
 
-  return colorMap[category] || {color: '#9E9E9E', textColor: '#fff'}
+  return colorMap[category] || {color: '#9E9E9E', textColor: '#fff'};
+}
+
+// 处理下拉菜单操作
+function handleDropdownAction(key, row) {
+  switch (key) {
+    case 'download':
+      downloadDocument(row);
+      break;
+    case 'share':
+      shareDocument(row);
+      break;
+    case 'star':
+      toggleStar(row);
+      break;
+    case 'delete':
+      deleteDocument(row);
+      break;
+  }
 }
 
 // 标签操作
 function addTag() {
   if (newTag.value && !selectedTags.value.includes(newTag.value)) {
-    selectedTags.value.push(newTag.value)
-    newTag.value = ''
+    selectedTags.value.push(newTag.value);
+    newTag.value = '';
   }
-  showTagInput.value = false
+  showTagInput.value = false;
 }
 
 function removeTag(tag) {
-  const index = selectedTags.value.indexOf(tag)
+  const index = selectedTags.value.indexOf(tag);
   if (index !== -1) {
-    selectedTags.value.splice(index, 1)
+    selectedTags.value.splice(index, 1);
   }
 }
 
 // 筛选操作
 function applyFilters() {
-  console.log('应用筛选条件:', filters)
+  console.log('应用筛选条件:', filters);
   // 筛选逻辑已经在 computed 中实现
-  currentPage.value = 1 // 重置到第一页
+  currentPage.value = 1; // 重置到第一页
 }
 
 function resetFilters() {
-  filters.types.markdown = true
-  filters.types.pdf = true
-  filters.types.image = false
-  filters.types.other = false
-  filters.dateRange = 'all'
-  filters.customDateRange = null
-  selectedTags.value = []
-  currentPage.value = 1 // 重置到第一页
+  filters.types.markdown = true;
+  filters.types.pdf = true;
+  filters.types.image = false;
+  filters.types.other = false;
+  filters.dateRange = 'all';
+  filters.customDateRange = null;
+  selectedTags.value = [];
+  currentPage.value = 1; // 重置到第一页
 }
 
 // 分类操作
 function handleCategoryChange(key) {
-  selectedCategory.value = key
-  currentPage.value = 1 // 重置到第一页
+  selectedCategory.value = key;
+  currentPage.value = 1; // 重置到第一页
+}
+
+// 添加新分类
+function addNewCategory() {
+  // 实际实现应该添加到categoryOptions中
+  console.log('添加新分类:', newCategoryForm);
+  showAddCategoryModal.value = false;
+
+  // 重置表单
+  newCategoryForm.name = '';
+  newCategoryForm.icon = '';
+  newCategoryForm.color = '#6366f1';
+}
+
+// 预览文档
+function previewDocument(doc) {
+  previewLoading.value = true;
+  selectedDocument.value = doc;
+
+  // 模拟加载
+  setTimeout(() => {
+    previewLoading.value = false;
+  }, 500);
 }
 
 // 文档操作
 function openDocument(doc) {
-  console.log('打开文档:', doc.title)
+  console.log('打开文档:', doc.title);
+  // 实际应该导航到文档查看页面
+  router.push({name: 'ViewDocument', params: {id: doc.id}});
 }
 
 function editDocument(doc) {
-  console.log('编辑文档:', doc.title)
-}
-
-function commentDocument(doc) {
-  console.log('评论文档:', doc.title)
+  console.log('编辑文档:', doc.title);
+  router.push({name: 'EditDocument', params: {id: doc.id}});
 }
 
 function toggleStar(doc) {
-  doc.starred = !doc.starred
-  console.log(doc.starred ? '添加星标:' : '移除星标:', doc.title)
+  doc.starred = !doc.starred;
+  console.log(doc.starred ? '添加星标:' : '移除星标:', doc.title);
 }
 
 function shareDocument(doc) {
-  console.log('分享文档:', doc.title)
+  console.log('分享文档:', doc.title);
+  // 实际实现应该打开分享对话框
 }
 
 function downloadDocument(doc) {
-  console.log('下载文档:', doc.title)
-}
-
-function duplicateDocument(doc) {
-  console.log('复制文档:', doc.title)
+  console.log('下载文档:', doc.title);
+  // 实际实现应该触发下载操作
 }
 
 function deleteDocument(doc) {
-  console.log('删除文档:', doc.title)
+  console.log('删除文档:', doc.title);
+  // 实际实现应该弹出确认对话框，然后从列表中移除
 }
-
-function viewDocument(doc) {
-  console.log('查看文档:', doc.title)
-}
-
 
 // 监听路由参数变化，自动选择相应的分类
 watch(() => route.query.category, (newCategory) => {
@@ -1072,7 +1108,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 样式部分不变 */
+/* 基础样式 */
 .documents-page {
   background-color: var(--body-color, #f5f7fa);
   min-height: 100vh;
@@ -1273,54 +1309,189 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.tabs-container {
+  flex: 1;
+}
+
 .view-options {
   display: flex;
   align-items: center;
 }
 
-.view-label {
-  margin-right: 8px;
-  color: var(--text-color-secondary, #666);
-}
-
-/* 文档卡片样式 */
+/* 文档卡片样式 - 全新设计 */
 .document-grid {
   margin-bottom: 20px;
+  min-height: 300px;
 }
 
+/* 新的卡片样式 */
 .document-card {
+  position: relative;
+  background: white;
   border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+  overflow: hidden;
   transition: all 0.3s ease;
-  height: 100%;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--box-shadow-1);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  background-color: white;
+  height: 100%;
 }
 
 .document-card:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--box-shadow-2);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  border-color: #e0e0e0;
 }
 
+/* 文档卡片头部 */
 .document-card-header {
   display: flex;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #f9f9f9;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.document-icon-container {
-  margin-right: 12px;
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
+.document-type-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(99, 102, 241, 0.1);
-  color: var(--primary-color, #6366f1);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 
+.document-star {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.document-star:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* 文档卡片主体 */
+.document-card-body {
+  padding: 16px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.document-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.document-description {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* 文档标签区域 */
+.document-tags {
+  padding: 0 16px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.document-category-tag {
+  font-weight: 500;
+}
+
+.document-tag {
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+.more-tags {
+  font-size: 12px;
+  color: #999;
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+}
+
+/* 文档元信息区域 */
+.document-meta {
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #888;
+  border-top: 1px solid #f0f0f0;
+  background-color: #fafafa;
+}
+
+.document-author {
+  font-weight: 500;
+}
+
+/* 文档底部 */
+.document-card-footer {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f0f0f0;
+  background-color: #f5f5f5;
+}
+
+.document-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #666;
+}
+
+.document-views {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.document-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.action-button {
+  color: #666;
+  transition: all 0.2s ease;
+}
+
+.action-button:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #333;
+}
+
+/* 类型特定样式 */
 .markdown-doc {
   background-color: rgba(59, 130, 246, 0.1);
   color: #3b82f6;
@@ -1331,57 +1502,60 @@ onMounted(() => {
   color: #ef4444;
 }
 
-.document-title-container {
-  flex: 1;
-  min-width: 0;
+.image-doc {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
 }
 
-.document-title {
-  font-weight: 600;
-  color: var(--text-color-base, #333);
-  margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* 预览卡片样式 */
+.preview-card {
+  border-radius: 12px;
+  margin-bottom: 16px;
+  box-shadow: var(--box-shadow-1);
 }
 
-.document-description {
-  color: var(--text-color-secondary, #666);
-  font-size: 13px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.document-card-meta {
+.preview-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  min-height: 24px;
 }
 
-.document-time {
-  font-size: 12px;
-  color: var(--text-color-tertiary, #999);
+.preview-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
 }
 
-.document-card-footer {
+.preview-content {
+  min-height: 150px;
+}
+
+.preview-info {
   display: flex;
   justify-content: space-between;
-  padding-top: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  margin-top: auto;
+  margin-bottom: 12px;
 }
 
-.document-actions {
+.preview-meta {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 12px;
 }
 
-.active-star {
-  color: #f59e0b;
+.preview-date {
+  color: var(--text-color-tertiary);
+  font-size: 13px;
+}
+
+.preview-description {
+  color: var(--text-color-secondary);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.preview-actions {
+  margin-top: 16px;
 }
 
 /* 分页区域 */
@@ -1397,80 +1571,6 @@ onMounted(() => {
 .pagination-info {
   font-size: 13px;
   color: var(--text-color-tertiary, #999);
-}
-
-/* 最近访问表格卡片 */
-.recent-visits-card {
-  border-radius: 12px;
-  box-shadow: var(--box-shadow-1);
-  background-color: white;
-}
-
-.recent-file-cell {
-  display: flex;
-  align-items: center;
-}
-
-.recent-file-icon {
-  margin-right: 8px;
-  display: flex;
-  align-items: center;
-}
-
-/* 上传文件对话框 */
-.upload-dragger-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32px;
-  color: var(--text-color-secondary, #666);
-}
-
-.upload-title {
-  margin: 16px 0 8px;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text-color-base, #333);
-}
-
-.upload-description {
-  margin: 0;
-  font-size: 14px;
-  color: var(--text-color-tertiary, #999);
-}
-
-.upload-options {
-  margin-top: 24px;
-}
-
-.options-title {
-  font-weight: 500;
-  margin-bottom: 12px;
-  color: var(--text-color-base, #333);
-}
-
-.upload-actions {
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-/* 文件名和图标样式 */
-.table-name-cell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.table-file-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-}
-
-.custom-date-range {
-  margin-top: 12px;
 }
 
 /* 适配不同屏幕尺寸 */
