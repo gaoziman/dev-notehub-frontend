@@ -26,7 +26,7 @@
     <!-- 返回顶部按钮 -->
     <div
         class="back-to-top"
-        :class="{ 'visible': showBackToTop }"
+        :class="{ 'visible': showBackToTop, 'toc-collapsed': tocCollapsed }"
         @click="scrollToTop"
         title="返回顶部"
     >
@@ -292,20 +292,14 @@ onBeforeUnmount(() => {
 /* 修改Markdown内容容器样式 */
 .md-viewer-content {
   flex: 1;
-  overflow-y: visible;
+  overflow-y: auto; /* 改为auto而不是visible */
   padding: 0;
   width: 100%;
-  padding-right: 260px;
   height: auto;
   scroll-behavior: smooth;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: padding-right;
   box-sizing: border-box;
-}
-
-/* 目录折叠时内容区域样式  */
-.md-viewer.toc-collapsed .md-viewer-content {
-  padding-right: 48px;
+  /* 移除padding-right，由父容器控制宽度 */
 }
 
 .md-toc-header h3 {
@@ -319,7 +313,7 @@ onBeforeUnmount(() => {
 .back-to-top {
   position: fixed;
   bottom: 30px;
-  right: 280px;
+  right: 30px; /* 更新：相对于右侧屏幕边缘固定位置 */
   width: 48px;
   height: 48px;
   background-color: rgba(255, 255, 255, 0.9);
@@ -335,11 +329,13 @@ onBeforeUnmount(() => {
   transition: all 0.3s ease;
   z-index: 100;
   padding: 8px;
+  /* 调整返回顶部按钮位置，确保不与TOC重叠 */
+  margin-right: calc(var(--toc-width, 260px) + 20px);
 }
 
 /* 当TOC折叠时，调整返回顶部按钮位置 */
-.md-viewer.toc-collapsed .back-to-top {
-  right: 60px;
+.back-to-top.toc-collapsed {
+  margin-right: calc(var(--toc-collapsed-width, 48px) + 20px);
 }
 
 .back-to-top-icon {
@@ -406,23 +402,15 @@ onBeforeUnmount(() => {
 
 /* 响应式布局 */
 @media (max-width: 1200px) {
-  .md-viewer-content {
-    padding-right: 240px; /* 小屏幕上减小右侧padding */
-  }
-
-  .md-viewer.toc-collapsed .md-viewer-content {
-    padding-right: 44px;
-  }
-
   .back-to-top {
-    right: 260px;
-    bottom: 20px;
     width: 42px;
     height: 42px;
+    bottom: 20px;
+    margin-right: calc(var(--toc-width, 240px) + 15px);
   }
 
-  .md-viewer.toc-collapsed .back-to-top {
-    right: 54px;
+  .back-to-top.toc-collapsed {
+    margin-right: calc(var(--toc-collapsed-width, 44px) + 15px);
   }
 }
 
@@ -431,50 +419,13 @@ onBeforeUnmount(() => {
   .back-to-top {
     display: none;
   }
-
-  .md-viewer-content {
-    padding-right: 0 !important;
-  }
-}
-
-/* 目录展开时的动画 */
-@keyframes content-expand {
-  from {
-    padding-right: 260px;
-  }
-  to {
-    padding-right: 48px;
-  }
-}
-
-/* 目录收起时的动画 */
-@keyframes content-collapse {
-  from {
-    padding-right: 48px;
-  }
-  to {
-    padding-right: 260px;
-  }
-}
-
-/* 当目录从折叠状态变为展开状态时应用收缩动画 */
-.md-viewer:not(.toc-collapsed) .md-viewer-content {
-  animation: content-collapse 0.3s ease-out;
-}
-
-/* 当目录从展开状态变为折叠状态时应用展开动画 */
-.md-viewer.toc-collapsed .md-viewer-content {
-  animation: content-expand 0.3s ease-out;
 }
 
 /* 移动设备优化 */
 @media (max-width: 768px) {
-  .md-viewer-content {
-    padding-right: 0 !important; /* 移动设备上不预留目录空间 */
-  }
-
   .back-to-top {
-    right: 20px !important; /* 确保按钮在右侧可见 */
+    right: 20px; /* 移动设备上固定在右侧 */
+    margin-right: 0; /* 移动设备上不考虑TOC */
   }
 }
 </style>

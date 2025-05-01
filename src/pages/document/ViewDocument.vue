@@ -910,23 +910,38 @@ watch(
   width: auto; /* 让宽度自适应 */
 }
 
-/* 优化中间内容区域布局 */
+/* 优化中间内容区域布局 - 更新的宽度计算 */
 .document-content {
   flex: 1;
   margin-left: var(--sidebar-width);
-  width: calc(100% - var(--sidebar-width)); /* 只考虑左侧边栏宽度 */
+  /* 修改:确保内容区域的宽度正确计算，考虑右侧目录 */
+  width: calc(100% - var(--sidebar-width) - var(--toc-width));
   transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   position: relative;
   min-height: 100vh;
   box-sizing: border-box;
+  max-width: calc(100% - var(--sidebar-width) - var(--toc-width)); /* 添加最大宽度限制 */
 }
 
 /* 左侧边栏折叠时内容区域样式 */
 .document-content.sidebar-collapsed {
   margin-left: var(--sidebar-collapsed-width);
-  width: calc(100% - var(--sidebar-collapsed-width));
+  width: calc(100% - var(--sidebar-collapsed-width) - var(--toc-width));
+  max-width: calc(100% - var(--sidebar-collapsed-width) - var(--toc-width));
+}
+
+/* 右侧目录折叠时内容区域样式 */
+.document-content.toc-collapsed {
+  width: calc(100% - var(--sidebar-width) - var(--toc-collapsed-width));
+  max-width: calc(100% - var(--sidebar-width) - var(--toc-collapsed-width));
+}
+
+/* 两侧都折叠时的样式 */
+.document-content.sidebar-collapsed.toc-collapsed {
+  width: calc(100% - var(--sidebar-collapsed-width) - var(--toc-collapsed-width));
+  max-width: calc(100% - var(--sidebar-collapsed-width) - var(--toc-collapsed-width));
 }
 
 .loading-content {
@@ -1285,6 +1300,13 @@ watch(
 
 /* 响应式样式 */
 @media (max-width: 1200px) {
+  .doc-view-container {
+    --sidebar-width: 220px;
+    --toc-width: 220px;
+    --sidebar-collapsed-width: 50px;
+    --toc-collapsed-width: 44px;
+  }
+
   .document-header {
     flex-direction: column;
   }
@@ -1328,17 +1350,16 @@ watch(
     flex-direction: column;
     gap: 12px;
   }
-
-  /* 调整响应式布局变量 */
-  :root {
-    --sidebar-width: 220px;
-    --toc-width: 220px;
-    --sidebar-collapsed-width: 50px;
-    --toc-collapsed-width: 44px;
-  }
 }
 
 @media (max-width: 768px) {
+  .doc-view-container {
+    --sidebar-width: 0;
+    --toc-width: 0;
+    --sidebar-collapsed-width: 0;
+    --toc-collapsed-width: 0;
+  }
+
   .document-header {
     padding: 20px 16px;
     margin-left: 16px;
@@ -1376,21 +1397,16 @@ watch(
   .document-content.sidebar-collapsed.toc-collapsed {
     margin-left: 0;
     width: 100%;
+    max-width: 100%;
   }
 
   .category-sidebar {
-    transform: translateX(-100%);
+    display: none;
   }
 
   .category-sidebar.visible {
+    display: block;
     transform: translateX(0);
-  }
-
-  :root {
-    --sidebar-width: 100%;
-    --toc-width: 100%;
-    --sidebar-collapsed-width: 0;
-    --toc-collapsed-width: 0;
   }
 }
 
@@ -1409,6 +1425,7 @@ watch(
   .document-content.sidebar-collapsed.toc-collapsed {
     margin: 0;
     width: 100%;
+    max-width: 100%;
   }
 
   .document-header,
@@ -1421,22 +1438,26 @@ watch(
 @keyframes sidebar-collapse {
   from {
     margin-left: var(--sidebar-width);
-    width: calc(100% - var(--sidebar-width));
+    width: calc(100% - var(--sidebar-width) - var(--toc-width));
+    max-width: calc(100% - var(--sidebar-width) - var(--toc-width));
   }
   to {
     margin-left: var(--sidebar-collapsed-width);
-    width: calc(100% - var(--sidebar-collapsed-width));
+    width: calc(100% - var(--sidebar-collapsed-width) - var(--toc-width));
+    max-width: calc(100% - var(--sidebar-collapsed-width) - var(--toc-width));
   }
 }
 
 @keyframes sidebar-expand {
   from {
     margin-left: var(--sidebar-collapsed-width);
-    width: calc(100% - var(--sidebar-collapsed-width));
+    width: calc(100% - var(--sidebar-collapsed-width) - var(--toc-width));
+    max-width: calc(100% - var(--sidebar-collapsed-width) - var(--toc-width));
   }
   to {
     margin-left: var(--sidebar-width);
-    width: calc(100% - var(--sidebar-width));
+    width: calc(100% - var(--sidebar-width) - var(--toc-width));
+    max-width: calc(100% - var(--sidebar-width) - var(--toc-width));
   }
 }
 
@@ -1451,6 +1472,6 @@ watch(
 
 /* 修复过渡过程中可能出现的问题 */
 .document-content {
-  will-change: margin-left, width;
+  will-change: margin-left, width, max-width;
 }
 </style>

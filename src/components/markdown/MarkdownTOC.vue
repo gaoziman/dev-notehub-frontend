@@ -413,9 +413,11 @@ onUnmounted(() => {
   position: fixed;
   right: 0;
   top: 80px; /* 初始值，会被JS动态更新 */
-  width: 260px;
+  width: var(--toc-width, 260px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 20;
+  /* 确保目录始终贴靠右侧边缘 */
+  pointer-events: auto;
 }
 
 .toc-wrapper {
@@ -613,7 +615,7 @@ onUnmounted(() => {
 
 /* 折叠状态样式 */
 .toc-collapsed {
-  width: 48px; /* 调整宽度，确保按钮可见 */
+  width: var(--toc-collapsed-width, 48px); /* 使用变量控制宽度 */
 }
 
 .toc-collapsed .toc-wrapper {
@@ -708,14 +710,15 @@ onUnmounted(() => {
 /* 响应式调整 */
 @media (max-width: 1280px) {
   .toc-container {
-    width: 240px;
+    width: var(--toc-width, 240px);
   }
 
   .toc-collapsed {
-    width: 44px; /* 适应较小屏幕 */
+    width: var(--toc-collapsed-width, 44px); /* 适应较小屏幕 */
   }
 }
 
+/* 移动设备适配 */
 @media (max-width: 768px) {
   .toc-container {
     display: none;
