@@ -41,6 +41,15 @@ const documentRoutes = [
             title: '查看文档',
             hideNavbar: true
         }
+    },
+    {
+        path: '/pdf/view/:id',
+        name: 'ViewPDFDocument',
+        component: () => import('@/pages/document/ViewPDFDocument.vue'),
+        props: true,
+        meta: {
+            title: 'PDF查看器'
+        }
     }
 ]
 
@@ -73,14 +82,14 @@ const routes = [
                     title: '书签管理'
                 }
             },
-            // {
-            //     path: 'knowledge-graph',
-            //     name: 'KnowledgeGraph',
-            //     component: () => import('@/views/KnowledgeGraph.vue'),
-            //     meta: {
-            //         title: '知识图谱'
-            //     }
-            // },
+            {
+                path: 'knowledge-graph',
+                name: 'knowledge-graph',
+                component: () => import('@/pages/Knowledge/KnowledgeGraph.vue'),
+                meta: {
+                    title: '知识图谱'
+                }
+            },
             // {
             //     path: 'learning-tracks',
             //     name: 'LearningTracks',

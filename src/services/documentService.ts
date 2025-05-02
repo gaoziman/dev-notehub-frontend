@@ -1,4 +1,3 @@
-// src/services/documentService.ts
 import { ref, reactive } from 'vue'
 
 // 创建一个简单的客户端存储，模拟后端数据存储
@@ -32,9 +31,9 @@ export const saveDocument = (document, isDraft = true) => {
     documentStore.set(id, {
         id,
         ...document,
-        author: currentUser.name,
-        authorBio: currentUser.bio,
-        avatarUrl: currentUser.avatarUrl,
+        author: document.author || currentUser.name,
+        authorBio: document.authorBio || currentUser.bio,
+        avatarUrl: document.avatarUrl || currentUser.avatarUrl,
         createTime: document.createTime || timestamp,
         updateTime: timestamp,
         status: isDraft ? 'draft' : 'published',
@@ -91,6 +90,22 @@ export const getAllDocuments = () => {
     })
 }
 
+// 获取指定类型的文档
+export const getDocumentsByType = (docType) => {
+    const documents = []
+
+    documentStore.forEach((doc) => {
+        if (doc.docType === docType) {
+            documents.push(doc)
+        }
+    })
+
+    // 按更新时间排序
+    return documents.sort((a, b) => {
+        return new Date(b.updateTime).getTime() - new Date(a.updateTime).getTime()
+    })
+}
+
 // 删除文档
 export const deleteDocument = (id) => {
     if (documentStore.has(id)) {
@@ -119,6 +134,22 @@ export const updateDocument = (id, updates) => {
     })
 
     return true
+}
+
+// 获取PDF URL（模拟API调用）
+export const getPdfUrl = (fileId) => {
+    // 模拟后端返回的PDF URL
+    return `http://leocoder.cn:9000/coder-devnotehub/documents/20250502/${fileId}.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20250501%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250501T162151Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=${Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)}`;
+}
+
+// 刷新PDF URL（模拟API调用）
+export const refreshPdfUrl = async (fileId) => {
+    // 模拟后端刷新URL的API调用
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(getPdfUrl(fileId));
+        }, 500); // 模拟网络延迟
+    });
 }
 
 // 添加示例文档
@@ -180,6 +211,7 @@ public class UserService {
     }
 }
 \`\`\``,
+            docType: 'markdown',
             category: ['spring', 'spring-framework'],
             tags: ['Spring', '框架', '依赖注入', '核心原理', 'AOP'],
             description: '本文深入剖析了Spring框架的核心原理，包括IoC容器、AOP实现机制、事务管理等关键特性，并结合实际案例展示了Spring在企业级应用中的最佳实践方案。',
@@ -211,6 +243,7 @@ public class EmbeddedServletContainerAutoConfiguration {
     }
 }
 \`\`\``,
+            docType: 'markdown',
             category: ['spring', 'springboot'],
             tags: ['SpringBoot', '自动配置', '源码分析', '启动原理'],
             description: '深入解析Spring Boot自动配置机制的工作原理，包括条件注解、配置类加载过程以及自定义自动配置的实现方法。',
@@ -242,16 +275,44 @@ public class LoggingAspect {
     }
 }
 \`\`\``,
+            docType: 'markdown',
             category: ['spring', 'spring-framework'],
             tags: ['Spring', 'AOP', '源码分析', '代理模式'],
             description: '本文深入分析Spring AOP的实现原理，包括代理创建过程、通知调用链构建、切点表达式解析等核心机制，帮助开发者理解AOP的内部工作流程。',
             coverImage: 'https://example.com/images/aop.jpg'
         }
 
+        // 添加PDF文档示例
+        const pdfDoc1 = {
+            id: 'pdf001',
+            title: 'Java虚拟机规范（第八版）',
+            docType: 'pdf',
+            category: ['resources', 'pdf-docs'],
+            tags: ['Java', 'JVM', '虚拟机', '规范文档'],
+            description: 'Java虚拟机规范第八版官方文档，详细描述了Java虚拟机的架构、类文件格式、字节码指令集、类加载机制等核心内容。',
+            pdfId: '4843df2c04ff452f80c86093ae7b3aa4',
+            pdfUrl: 'http://leocoder.cn:9000/coder-devnotehub/documents/20250502/4843df2c04ff452f80c86093ae7b3aa4.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20250501%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250501T162151Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=99221589f4a7b8d342051fab2a75554e61d2c9beee1c2edd49ff0534218291c9',
+            coverImage: 'https://example.com/images/jvm.jpg'
+        }
+
+        const pdfDoc2 = {
+            id: 'pdf002',
+            title: 'Effective Java编程指南',
+            docType: 'pdf',
+            category: ['resources', 'pdf-docs'],
+            tags: ['Java', '最佳实践', '编程指南'],
+            description: 'Effective Java第三版中文版，涵盖Java编程的78条最佳实践，是每位Java开发者必读的经典著作。',
+            pdfId: '7a21cf9b82e345d68bc6f7d9a32e1c0f',
+            pdfUrl: 'http://leocoder.cn:9000/coder-devnotehub/documents/20250502/4843df2c04ff452f80c86093ae7b3aa4.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20250501%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250501T162151Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=99221589f4a7b8d342051fab2a75554e61d2c9beee1c2edd49ff0534218291c9',
+            coverImage: 'https://example.com/images/effective-java.jpg'
+        }
+
         // 保存示例文档
         saveDocument(exampleDoc, false)
         saveDocument(exampleDoc2, false)
         saveDocument(exampleDoc3, false)
+        saveDocument(pdfDoc1, false)
+        saveDocument(pdfDoc2, false)
     }
 }
 
@@ -262,7 +323,10 @@ export default {
     saveDocument,
     getDocument,
     getDocumentsByCategory,
+    getDocumentsByType,
     getAllDocuments,
     deleteDocument,
-    updateDocument
+    updateDocument,
+    getPdfUrl,
+    refreshPdfUrl
 }
