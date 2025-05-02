@@ -341,7 +341,7 @@ const prevDocument = ref(null);
 const nextDocument = ref(null);
 
 // PDF URL - 开发阶段使用固定URL
-const devPdfUrl = 'http://leocoder.cn:9000/coder-devnotehub/documents/20250502/4a3c0fb7ad2d481293b8439bedf27b19.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20250502%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250502T102215Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=c17ea81d4a191cbaad16cad59b90a86a688848462d9d9c0619ba3a2a7fa51c67';
+const devPdfUrl = 'http://leocoder.cn:9000/coder-devnotehub/documents/20250503/1047e56767094243a7592fdf7d5df2a7.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20250502%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250502T183347Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=7d716ed1a80c2926697f4ad66a64b57d1789b935aed4fa21e24e61671496327a';
 
 // 切换侧边栏
 const toggleSidebar = () => {
@@ -373,7 +373,7 @@ const fetchDocument = async () => {
       // 由于尚无后端，这里创建一个临时文档对象
       document.value = {
         id: documentId.value,
-        title: 'Java虚拟机规范（第八版）',
+        title: 'Java 面试题库',
         author: '技术文档组',
         updateTime: new Date().toISOString().split('T')[0],
         views: 128,
