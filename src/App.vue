@@ -2,9 +2,11 @@
   <n-config-provider :theme="activeTheme" :theme-overrides="themeOverrides">
     <n-message-provider>
       <n-dialog-provider>
-        <router-view v-slot="{ Component }">
-          <component :is="Component" />
-        </router-view>
+        <n-notification-provider>
+          <router-view v-slot="{ Component }">
+            <component :is="Component" />
+          </router-view>
+        </n-notification-provider>
       </n-dialog-provider>
     </n-message-provider>
   </n-config-provider>

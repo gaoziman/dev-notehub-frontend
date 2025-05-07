@@ -76,12 +76,12 @@ const menuOptions = [
       },
       {
         label: '书签管理',
-        key: 'bookmarks',
+        key: 'bookmarkspage',
         icon: () => h(IconFont, {type: 'icon-shuqian1'})
       },
       {
-        label: '知识图谱',
-        key: 'knowledge-graph',
+        label: '代码片段库',
+        key: 'code-snippets',
         icon: () => h(IconFont, {type: 'icon-zhishitupu2'})
       },
       {
@@ -138,7 +138,7 @@ const menuOptions = [
 // 菜单项点击处理函数
 const handleMenuClick = (key) => {
   // 如果是主导航项，直接路由到对应页面
-  if (['dashboard', 'documentpage', 'bookmarks', 'knowledge-graph', 'learning-tracks', 'tools'].includes(key)) {
+  if (['dashboard', 'documentpage', 'bookmarkspage', 'code-snippets', 'learning-tracks', 'tools'].includes(key)) {
     router.push({ name: key });
   }
   // 如果是知识分类项，跳转到文档页并传递分类参数
