@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '@/components/layout/MainLayout.vue'
+import toolsRoutes from '@/router/tools.routes'
 
 // 文档相关的路由单独配置
 const documentRoutes = [
@@ -53,6 +54,8 @@ const documentRoutes = [
     }
 ]
 
+
+
 const routes = [
     {
         path: '/',
@@ -83,32 +86,43 @@ const routes = [
                 }
             },
             {
-                path: 'knowledge-graph',
-                name: 'knowledge-graph',
-                component: () => import('@/pages/Knowledge/KnowledgeGraph.vue'),
+                path: 'code-snippets',
+                name: 'code-snippets',
+                component: () => import('@/pages/snippet/CodeSnippetLibrary.vue'),
                 meta: {
-                    title: '知识图谱'
+                    title: '代码片段库'
                 }
             },
-            // {
-            //     path: 'learning-tracks',
-            //     name: 'LearningTracks',
-            //     component: () => import('@/views/LearningTracks.vue'),
-            //     meta: {
-            //         title: '学习追踪'
-            //     }
-            // },
-            // {
-            //     path: 'tools',
-            //     name: 'Tools',
-            //     component: () => import('@/views/Tools.vue'),
-            //     meta: {
-            //         title: '工具集'
-            //     }
-            // }
+            {
+                path: '/code-snippets/view/:id',
+                name: 'view-code-snippet',
+                component: () => import('@/pages/snippet/ViewCodeSnippet.vue'),
+                props: true,
+                meta: {
+                    title: '查看代码片段',
+                    transition: 'fade'
+                }
+            },
+            {
+                path: 'learning-tracks',
+                name: 'learning-tracks',
+                component: () => import('@/pages/learning/LearningTracksPage.vue'),
+                meta: {
+                    title: '学习追踪'
+                }
+            },
+            {
+                path: 'tools',
+                name: 'tools',
+                component: () => import('@/pages/tools/ToolsPage.vue'),
+                meta: {
+                    title: '工具集'
+                }
+            }
         ]
     },
     ...documentRoutes,
+    ...toolsRoutes.filter(route => route.path !== '/tools'),
 
     // 错误页面
     // {
