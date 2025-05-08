@@ -18,8 +18,8 @@
 </template>
 
 <script setup>
-import { h, ref, watchEffect } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import {h, ref, watchEffect} from 'vue';
+import {useRouter, useRoute} from 'vue-router';
 import IconFont from "@/components/common/IconFont.vue";
 
 const router = useRouter();
@@ -46,13 +46,13 @@ watchEffect(() => {
 
 // 渲染图标的辅助函数
 function renderIcon(icon) {
-  return () => h('div', { class: 'sidebar-icon' }, [
+  return () => h('div', {class: 'sidebar-icon'}, [
     h(
         'n-icon',
         {
           size: '18',
         },
-        { default: () => h(icon) }
+        {default: () => h(icon)}
     )
   ]);
 }
@@ -80,7 +80,7 @@ const menuOptions = [
         icon: () => h(IconFont, {type: 'icon-shuqian1'})
       },
       {
-        label: '代码片段库',
+        label: '代码片段',
         key: 'code-snippets',
         icon: () => h(IconFont, {type: 'icon-zhishitupu2'})
       },
@@ -90,9 +90,14 @@ const menuOptions = [
         icon: () => h(IconFont, {type: 'icon-zhuizong'})
       },
       {
-        label: '工具集',
+        label: '工具合集',
         key: 'tools',
         icon: () => h(IconFont, {type: 'icon--'})
+      },
+      {
+        label: '图标管理',
+        key: 'iconfont',
+        icon: () => h(IconFont, {type: 'icon-a-caisetubiaoku-jiance'})
       }
     ]
   },
@@ -138,14 +143,14 @@ const menuOptions = [
 // 菜单项点击处理函数
 const handleMenuClick = (key) => {
   // 如果是主导航项，直接路由到对应页面
-  if (['dashboard', 'documentpage', 'bookmarkspage', 'code-snippets', 'learning-tracks', 'tools'].includes(key)) {
-    router.push({ name: key });
+  if (['dashboard', 'documentpage', 'bookmarkspage', 'code-snippets', 'learning-tracks', 'tools', 'iconfont'].includes(key)) {
+    router.push({name: key});
   }
   // 如果是知识分类项，跳转到文档页并传递分类参数
   else if (['java-basic', 'java-advanced', 'spring', 'spring-boot', 'mysql', 'redis'].includes(key)) {
     router.push({
       name: 'DocumentPage',
-      query: { category: key }
+      query: {category: key}
     });
   }
 };
