@@ -93,7 +93,7 @@ const routes = [
             {
                 path: 'documents',
                 name: 'documentpage',
-                component: () => import('@/pages/home/DocumentPage.vue'),
+                component: () => import('@/pages/document/DocumentPage.vue'),
                 meta: {
                     title: '文档管理',
                     requiresAuth: true,
