@@ -1,6 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import toolsRoutes from '@/router/tools.routes'
+import { useUserStore } from '@/stores/user'
+
+// 欢迎页路由
+const welcomeRoute = {
+    path: '/',
+    name: 'home',
+    component: () => import('@/pages/home/HomeContainer.vue'),
+    meta: {
+        title: '欢迎使用智慧知识库',
+        hideNavbar: true,
+        allowAnonymous: true
+    }
+}
 
 // 文档相关的路由单独配置
 const documentRoutes = [
@@ -40,6 +53,7 @@ const documentRoutes = [
         component: () => import('@/pages/document/ViewDocument.vue'),
         meta: {
             title: '查看文档',
+            requiresAuth: true,
             hideNavbar: true
         }
     },
@@ -49,32 +63,41 @@ const documentRoutes = [
         component: () => import('@/pages/document/ViewPDFDocument.vue'),
         props: true,
         meta: {
-            title: 'PDF查看器'
+            title: 'PDF查看器',
+            requiresAuth: true
         }
     }
 ]
 
-
-
 const routes = [
+    // 添加欢迎页为默认路由
+    welcomeRoute,
+
     {
-        path: '/',
+        path: '/dashboard',
         component: MainLayout,
+        meta: {
+            requiresAuth: true
+        },
         children: [
             {
                 path: '',
                 name: 'dashboard',
                 component: () => import('@/pages/home/Dashboard.vue'),
                 meta: {
-                    title: '仪表盘'
+                    title: '仪表盘',
+                    requiresAuth: true,
+                    transition: 'fade'
                 }
             },
             {
                 path: 'documents',
                 name: 'documentpage',
-                component: () => import('@/pages/home//DocumentPage.vue'),
+                component: () => import('@/pages/home/DocumentPage.vue'),
                 meta: {
-                    title: '文档管理'
+                    title: '文档管理',
+                    requiresAuth: true,
+                    transition: 'fade'
                 }
             },
             {
@@ -82,7 +105,9 @@ const routes = [
                 name: 'bookmarkspage',
                 component: () => import('@/pages/bookmarks/BookmarksPage.vue'),
                 meta: {
-                    title: '书签管理'
+                    title: '书签管理',
+                    requiresAuth: true,
+                    transition: 'fade'
                 }
             },
             {
@@ -90,7 +115,9 @@ const routes = [
                 name: 'code-snippets',
                 component: () => import('@/pages/snippet/CodeSnippetLibrary.vue'),
                 meta: {
-                    title: '代码片段库'
+                    title: '代码片段库',
+                    requiresAuth: true,
+                    transition: 'fade'
                 }
             },
             {
@@ -100,6 +127,7 @@ const routes = [
                 props: true,
                 meta: {
                     title: '查看代码片段',
+                    requiresAuth: true,
                     transition: 'fade'
                 }
             },
@@ -108,7 +136,9 @@ const routes = [
                 name: 'learning-tracks',
                 component: () => import('@/pages/learning/LearningTracksPage.vue'),
                 meta: {
-                    title: '学习追踪'
+                    title: '学习追踪',
+                    requiresAuth: true,
+                    transition: 'fade'
                 }
             },
             {
@@ -116,7 +146,29 @@ const routes = [
                 name: 'tools',
                 component: () => import('@/pages/tools/ToolsPage.vue'),
                 meta: {
-                    title: '工具集'
+                    title: '工具集',
+                    requiresAuth: true,
+                    transition: 'fade'
+                }
+            },
+            {
+                path: 'icon',
+                name: 'iconfont',
+                component: () => import('@/pages/icon/IconFontPage.vue'),
+                meta: {
+                    title: '图标库',
+                    requiresAuth: true,
+                    transition: 'fade'
+                }
+            },
+            {
+                path: '/search',
+                name: 'searchResults',
+                component: () => import('@/pages/search/SearchResultsPage.vue'),
+                meta: {
+                    title: '搜索结果',
+                    requiresAuth: true,
+                    transition: 'fade'
                 }
             }
         ]
@@ -126,16 +178,13 @@ const routes = [
 
     // 错误页面
     // {
-    //     path: '/404',
-    //     name: 'NotFound',
-    //     component: () => import('@/views/NotFound.vue'),
-    //     meta: {
-    //         title: '页面不存在'
-    //     }
-    // },
-    // {
     //     path: '/:pathMatch(.*)*',
-    //     redirect: '/404'
+    //     name: 'NotFound',
+    //     component: () => import('@/pages/home/HomeContainer.vue'),
+    //     meta: {
+    //         title: '页面不存在',
+    //         allowAnonymous: true // 允许匿名访问错误页面
+    //     }
     // }
 ]
 
@@ -148,6 +197,24 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
     // 设置页面标题
     document.title = to.meta.title ? `${to.meta.title} - 智慧知识库` : '智慧知识库'
+
+    const userStore = useUserStore()
+
+    // 如果用户已登录且尝试访问欢迎页，则重定向到仪表盘
+    if (userStore.isLoggedIn && to.path === '/') {
+        next('/dashboard')
+        return
+    }
+
+    // 检查页面是否需要身份验证
+    // 默认所有页面都需要身份验证，除非明确标记了 allowAnonymous
+    if (!to.meta.allowAnonymous) {
+        if (!userStore.isLoggedIn) {
+            next('/')
+            return
+        }
+    }
+
     next()
 })
 
