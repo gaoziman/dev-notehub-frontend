@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import toolsRoutes from '@/router/tools.routes'
 import { useUserStore } from '@/stores/user'
+import videoRoutes from "@/router/video.routes";
 
 // 欢迎页路由
 const welcomeRoute = {
@@ -68,6 +69,7 @@ const documentRoutes = [
         }
     }
 ]
+
 
 const routes = [
     // 添加欢迎页为默认路由
@@ -174,6 +176,7 @@ const routes = [
         ]
     },
     ...documentRoutes,
+    ...videoRoutes,
     ...toolsRoutes.filter(route => route.path !== '/tools'),
 
     // 错误页面

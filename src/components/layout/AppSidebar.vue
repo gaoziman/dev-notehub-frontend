@@ -57,7 +57,7 @@ function renderIcon(icon) {
   ]);
 }
 
-// 菜单配置保持不变
+// 更新后的菜单配置 - 将视频管理改为有子菜单的父级
 const menuOptions = [
   {
     label: '主导航',
@@ -85,6 +85,29 @@ const menuOptions = [
         icon: () => h(IconFont, {type: 'icon-zhishitupu2'})
       },
       {
+        label: '视频管理',
+        key: 'video-parent',  // 将key改为video-parent，标识这是父级菜单
+        icon: () => h(IconFont, {type: 'icon-icon-zhishitupu'}),
+        // 添加子菜单配置
+        children: [
+          {
+            label: '视频主页',
+            key: 'video-home',
+            icon: () => h(IconFont, {type: 'icon-shipin1'})
+          },
+          {
+            label: '视频管理',
+            key: 'video-manage',
+            icon: () => h(IconFont, {type: 'icon-shipin-guanli'})
+          },
+          {
+            label: '分类管理',
+            key: 'video-categories',
+            icon: () => h(IconFont, {type: 'icon-fenlei'})
+          }
+        ]
+      },
+      {
         label: '学习追踪',
         key: 'learning-tracks',
         icon: () => h(IconFont, {type: 'icon-zhuizong'})
@@ -97,7 +120,7 @@ const menuOptions = [
       {
         label: '图标管理',
         key: 'iconfont',
-        icon: () => h(IconFont, {type: 'icon-a-caisetubiaoku-jiance'})
+        icon: () => h(IconFont, {type: 'icon-tubiaoku1'})
       }
     ]
   },
@@ -140,13 +163,22 @@ const menuOptions = [
   }
 ];
 
-// 菜单项点击处理函数
+// 更新后的菜单项点击处理函数
 const handleMenuClick = (key) => {
-  // 如果是主导航项，直接路由到对应页面
+  // 检查是否点击了父级视频管理菜单，如果是则不处理
+  if (key === 'video-parent') {
+    return;
+  }
+
+  // 处理主导航项
   if (['dashboard', 'documentpage', 'bookmarkspage', 'code-snippets', 'learning-tracks', 'tools', 'iconfont'].includes(key)) {
     router.push({name: key});
   }
-  // 如果是知识分类项，跳转到文档页并传递分类参数
+  // 处理视频相关导航
+  else if (['video-home', 'video-manage', 'video-categories'].includes(key)) {
+    router.push({name: key});
+  }
+  // 处理知识分类项，跳转到文档页并传递分类参数
   else if (['java-basic', 'java-advanced', 'spring', 'spring-boot', 'mysql', 'redis'].includes(key)) {
     router.push({
       name: 'DocumentPage',
@@ -205,5 +237,16 @@ const handleMenuClick = (key) => {
 
 .sidebar::-webkit-scrollbar-thumb:hover {
   background: #909399;
+}
+
+/* 自定义样式 - 为子菜单项添加缩进和视觉效果 */
+.n-menu .n-menu-item {
+  border-radius: 8px;
+  margin: 4px 8px;
+}
+
+/* 视频管理子菜单特殊样式 */
+.n-menu .n-menu-item-content-header[data-menu-key="video-parent"] {
+  pointer-events: none; /* 禁止点击 */
 }
 </style>

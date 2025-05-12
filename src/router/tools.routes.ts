@@ -1,12 +1,11 @@
 import { RouteRecordRaw } from 'vue-router';
-import ClipboardManager from "@/pages/tools/ClipboardManager.vue";
 import ColorPicker from "@/pages/tools/ColorPicker.vue";
 
-// 导入工具页面组件
 const ToolsPage = () => import('@/pages/tools/ToolsPage.vue');
 const JsonFormatter = () => import('@/pages/tools/JsonFormatter.vue');
 const RegexTester = () => import('@/pages/tools/RegexTester.vue');
 const SqlFormatter = () => import('@/pages/tools/SqlFormatter.vue');
+const DevToolkit = () => import('@/pages/tools/DevToolkit.vue');
 
 // 工具集路由
 const toolsRoutes: RouteRecordRaw[] = [
@@ -59,7 +58,17 @@ const toolsRoutes: RouteRecordRaw[] = [
             requiresAuth: false,
             hideInMenu: true
         }
-    }
+    },
+    {
+        path: '/tools/dev-toolkit',
+        name: 'dev-toolkit',
+        component: DevToolkit,
+        meta: {
+            title: '效率工具箱',
+            requiresAuth: false,
+            hideInMenu: true
+        }
+    },
 ];
 
 export default toolsRoutes;
