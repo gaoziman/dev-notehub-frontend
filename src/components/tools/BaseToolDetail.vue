@@ -136,7 +136,7 @@ const handleMoreAction = (key) => {
 };
 
 const goBack = () => {
-  router.push('/tools');
+  router.push('/dashboard/tools');
 };
 </script>
 

@@ -225,14 +225,31 @@ const tools = [
     iconColor: '#f44336',
     route: '/tools/color-picker',
     category: 'visual',
-    isNew: true,
+    isNew: false,
     lastUsed: '昨天'
-  }
+  },
+  {
+    id: 'dev-toolkit',
+    title: '效率工具箱',
+    description: '多功能工具集，包含时间转换、Base64编码、IP查询、随机数据生成等实用功能',
+    iconType: 'icon-toolkit',
+    iconColor: '#18a058', // success色
+    route: '/tools/dev-toolkit',
+    category: 'utils',
+    isNew: true,
+    lastUsed: '刚刚'
+  },
 ];
 
 // 最近使用的工具
 const recentTools = computed(() => {
-  return tools.slice(0, 5); // 取前5个作为最近使用
+  // 按照lastUsed排序，先显示"刚刚"使用的工具
+  const sortedTools = [...tools].sort((a, b) => {
+    if (a.lastUsed === '刚刚' && b.lastUsed !== '刚刚') return -1;
+    if (a.lastUsed !== '刚刚' && b.lastUsed === '刚刚') return 1;
+    return 0;
+  });
+  return sortedTools.slice(0, 5); // 取前5个作为最近使用
 });
 
 // 根据搜索筛选工具
