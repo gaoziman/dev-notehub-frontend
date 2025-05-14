@@ -3,6 +3,7 @@ import MainLayout from '@/components/layout/MainLayout.vue'
 import toolsRoutes from '@/router/tools.routes'
 import { useUserStore } from '@/stores/user'
 import videoRoutes from "@/router/video.routes";
+import PersonalPage from "@/pages/personal/PersonalPage.vue";
 
 // 欢迎页路由
 const welcomeRoute = {
@@ -134,16 +135,6 @@ const routes = [
                 }
             },
             {
-                path: 'learning-tracks',
-                name: 'learning-tracks',
-                component: () => import('@/pages/learning/LearningTracksPage.vue'),
-                meta: {
-                    title: '学习追踪',
-                    requiresAuth: true,
-                    transition: 'fade'
-                }
-            },
-            {
                 path: 'tools',
                 name: 'tools',
                 component: () => import('@/pages/tools/ToolsPage.vue'),
@@ -180,15 +171,15 @@ const routes = [
     ...toolsRoutes.filter(route => route.path !== '/tools'),
 
     // 错误页面
-    // {
-    //     path: '/:pathMatch(.*)*',
-    //     name: 'NotFound',
-    //     component: () => import('@/pages/home/HomeContainer.vue'),
-    //     meta: {
-    //         title: '页面不存在',
-    //         allowAnonymous: true // 允许匿名访问错误页面
-    //     }
-    // }
+    {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: () => import('@/pages/404/NotFound.vue'),
+        meta: {
+            title: '页面不存在',
+            allowAnonymous: true
+        }
+    }
 ]
 
 const router = createRouter({

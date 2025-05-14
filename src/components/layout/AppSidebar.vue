@@ -108,11 +108,6 @@ const menuOptions = [
         ]
       },
       {
-        label: '学习追踪',
-        key: 'learning-tracks',
-        icon: () => h(IconFont, {type: 'icon-zhuizong'})
-      },
-      {
         label: '工具合集',
         key: 'tools',
         icon: () => h(IconFont, {type: 'icon--'})
@@ -171,7 +166,7 @@ const handleMenuClick = (key) => {
   }
 
   // 处理主导航项
-  if (['dashboard', 'documentpage', 'bookmarkspage', 'code-snippets', 'learning-tracks', 'tools', 'iconfont'].includes(key)) {
+  if (['dashboard', 'documentpage', 'bookmarkspage', 'code-snippets',  'tools', 'iconfont'].includes(key)) {
     router.push({name: key});
   }
   // 处理视频相关导航

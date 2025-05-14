@@ -266,58 +266,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 平台来源筛选 -->
-        <div class="filter-section" :class="{ 'expanded': expandPlatform }">
-          <div class="section-header" @click="expandPlatform = !expandPlatform">
-            <div class="section-icon platform-icon">
-              <icon-font type="icon-pingtai" :size="16" />
-            </div>
-            <div class="section-title">平台来源</div>
-            <div v-if="platforms.length > 0" class="section-badge">{{ platforms.length }}</div>
-            <div class="section-toggle">
-              <icon-font
-                  :type="expandPlatform ? 'icon-arrow-up' : 'icon-arrow-down'"
-                  :size="14"
-              />
-            </div>
-          </div>
-
-          <div v-show="expandPlatform" class="section-content">
-            <div class="platforms-grid">
-              <div
-                  v-for="platform in platformOptions"
-                  :key="platform.value"
-                  class="platform-item"
-                  :class="{ 'selected': isSelected(platforms, platform.value) }"
-                  @click="togglePlatform(platform.value)"
-              >
-                <div
-                    class="platform-icon-wrapper"
-                    :style="{
-                    borderColor: isSelected(platforms, platform.value) ?
-                      getPlatformColor(platform.value) : 'transparent',
-                    backgroundColor: isSelected(platforms, platform.value) ?
-                      getPlatformColorBg(platform.value) : '#f5f7fa'
-                  }"
-                >
-                  <icon-font
-                      :type="getPlatformIcon(platform.value)"
-                      :size="24"
-                      :color="getPlatformColor(platform.value)"
-                  />
-                  <div v-if="isSelected(platforms, platform.value)" class="platform-check">
-                    <icon-font type="icon-check" :size="14" color="#fff" />
-                  </div>
-                </div>
-                <div class="platform-info">
-                  <div class="platform-name">{{ platform.label }}</div>
-                  <div class="platform-count">{{ platform.count }}篇</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- 底部操作按钮 -->
