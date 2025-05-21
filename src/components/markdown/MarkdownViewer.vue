@@ -141,21 +141,47 @@ const updateActiveHeading = (headingId) => {
   activeHeadingId.value = headingId;
 };
 
-// 更新标题列表
+// 更新标题列表 - 关键修复点：处理来自MarkdownRenderer的标题更新
 const updateHeadings = (newHeadings) => {
+  console.log('MarkdownViewer收到标题更新:', newHeadings.length, '个标题');
+
+  // 验证标题ID的唯一性
+  const idMap = new Map();
+  const duplicateIds = [];
+
+  newHeadings.forEach((heading, index) => {
+    if (idMap.has(heading.id)) {
+      duplicateIds.push(heading.id);
+      console.warn(`发现重复ID: ${heading.id}, 标题: "${heading.text}"`);
+    } else {
+      idMap.set(heading.id, index);
+    }
+  });
+
+  if (duplicateIds.length > 0) {
+    console.error('检测到重复的标题ID:', duplicateIds);
+  } else {
+    console.log('所有标题ID都是唯一的 ✓');
+  }
+
   headings.value = newHeadings;
 
+  // 设置默认活动标题
   if (newHeadings.length > 0 && !activeHeadingId.value) {
     activeHeadingId.value = newHeadings[0].id;
   }
 
+  // 通知父组件标题已准备好
   emit('toc-ready', newHeadings);
 };
 
 // 滚动到指定标题
 const scrollToHeading = (id) => {
   const element = document.getElementById(id);
-  if (!element || !contentRef.value) return;
+  if (!element || !contentRef.value) {
+    console.warn(`未找到ID为 ${id} 的标题元素`);
+    return;
+  }
 
   try {
     isScrolling.value = true;
@@ -202,9 +228,13 @@ watch(() => props.isDarkMode, (newValue) => {
   }
 });
 
-// 监听内容变化
+// 监听内容变化 - 重要：内容变化时重置状态
 watch(() => props.markdown, () => {
+  console.log('Markdown内容发生变化，重置组件状态');
+
+  // 重置状态
   activeHeadingId.value = '';
+  headings.value = [];
 
   // 内容变化后，确保滚动到顶部
   if (contentRef.value) {
@@ -216,6 +246,8 @@ watch(() => props.markdown, () => {
 
 // 组件挂载后执行初始化
 onMounted(() => {
+  console.log('MarkdownViewer组件已挂载');
+
   // 从本地存储恢复目录折叠状态
   const savedCollapsed = localStorage.getItem('md-toc-collapsed');
   if (savedCollapsed !== null) {
@@ -235,12 +267,18 @@ onMounted(() => {
   }
 
   // 监听哈希变更，支持从URL直接跳转到指定标题
-  window.addEventListener('hashchange', () => {
+  const handleHashChange = () => {
     const hash = window.location.hash.slice(1);
     if (hash) {
-      scrollToHeading(hash);
+      console.log('检测到URL哈希变化:', hash);
+      // 延迟执行以确保DOM已更新
+      setTimeout(() => {
+        scrollToHeading(hash);
+      }, 200);
     }
-  });
+  };
+
+  window.addEventListener('hashchange', handleHashChange);
 
   // 添加窗口滚动事件监听
   window.addEventListener('scroll', handleWindowScroll, {passive: true});
@@ -252,6 +290,7 @@ onMounted(() => {
   if (window.location.hash) {
     const hash = window.location.hash.slice(1);
     if (hash) {
+      console.log('初始化时检测到URL哈希:', hash);
       // 延迟执行，确保DOM已完全加载
       setTimeout(() => {
         scrollToHeading(hash);
@@ -262,13 +301,14 @@ onMounted(() => {
 
 // 组件卸载前清理
 onBeforeUnmount(() => {
+  console.log('MarkdownViewer组件即将卸载');
+
   if (typeof document !== 'undefined') {
     document.documentElement.classList.remove('dark');
   }
 
   // 移除事件监听器
-  window.removeEventListener('hashchange', () => {
-  });
+  window.removeEventListener('hashchange', () => {});
   window.removeEventListener('scroll', handleWindowScroll);
 });
 </script>

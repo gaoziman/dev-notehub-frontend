@@ -70,6 +70,22 @@ const images = ref([]);
 const currentImageIndex = ref(0);
 const currentImage = computed(() => images.value[currentImageIndex.value] || { src: '', alt: '' });
 
+// 添加ID唯一性管理 - 这是修复重复ID的核心
+const idCounters = ref(new Map());
+
+// 生成唯一ID的函数
+const generateUniqueId = (text) => {
+  // 基础ID生成：将文本转换为小写并替换非字母数字字符
+  const baseId = text.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '');
+
+  // 检查是否已存在此ID
+  const count = idCounters.value.get(baseId) || 0;
+  idCounters.value.set(baseId, count + 1);
+
+  // 如果是第一次出现，直接使用baseId；否则添加计数器
+  return count === 0 ? baseId : `${baseId}-${count + 1}`;
+};
+
 // 打开预览
 const openPreview = (index) => {
   currentImageIndex.value = index;
@@ -150,6 +166,35 @@ const setupImagePreview = () => {
   document.addEventListener('keydown', handleKeyDown);
 };
 
+// 去除代码块中的共同缩进
+function dedent(text) {
+  // 分割成行
+  const lines = text.split('\n');
+
+  // 找出除了空行外所有行的最小缩进
+  const pattern = /^(\s*)/;
+  let minIndent = Infinity;
+
+  // 查找最小缩进
+  for (const line of lines) {
+    if (line.trim() === '') continue; // 跳过空行
+    const match = pattern.exec(line);
+    if (match && match[1].length < minIndent) {
+      minIndent = match[1].length;
+    }
+  }
+
+  // 如果发现有缩进，则移除所有行的共同缩进部分
+  if (minIndent !== Infinity && minIndent > 0) {
+    return lines
+        .map(line => line.length >= minIndent ? line.slice(minIndent) : line)
+        .join('\n');
+  }
+
+  // 如果没有共同缩进或不需要处理，返回原始文本
+  return text;
+}
+
 // 配置markdown-it实例及插件
 const md = new MarkdownIt({
   html: true,
@@ -158,7 +203,11 @@ const md = new MarkdownIt({
   highlight: function (str, lang) {
     if (lang && hljs.getLanguage(lang)) {
       try {
-        const highlighted = hljs.highlight(str, { language: lang }).value;
+        // 删除共同缩进
+        const dedentedCode = dedent(str);
+
+        // 使用去除缩进后的代码进行高亮处理
+        const highlighted = hljs.highlight(dedentedCode, {language: lang}).value;
 
         // 为代码块添加复制按钮和折叠按钮，使用黑色Mac终端风格
         const codeId = `code-${Math.random().toString(36).substring(2, 10)}`;
@@ -176,26 +225,37 @@ const md = new MarkdownIt({
               <button class="md-collapse-button" id="${collapseId}">折叠</button>
             </div>
           </div>
-          <pre class="language-${lang}" id="pre-${collapseId}"><code>${highlighted}</code></pre>
-          <textarea style="display:none" id="content-${codeId}">${str}</textarea>
+          <pre class="language-${lang} md-code-left-aligned" id="pre-${collapseId}"><code class="md-code-left-aligned">${highlighted}</code></pre>
+          <textarea style="display:none" id="content-${codeId}">${dedentedCode}</textarea>
         </div>`;
       } catch (e) {
         console.error('代码高亮出错:', e);
       }
     }
 
-    return `<pre class="language-plaintext"><code>${md.utils.escapeHtml(str)}</code></pre>`;
+    return `<pre class="language-plaintext md-code-left-aligned"><code>${md.utils.escapeHtml(str)}</code></pre>`;
   }
 });
 
-// 添加锚点插件，为标题生成ID
+// 添加锚点插件，为标题生成ID - 关键修改点
 md.use(markdownItAnchor, {
   permalink: true,
   permalinkSymbol: '#',
   permalinkBefore: true,
   level: [1, 2, 3, 4, 5, 6],
-  // 确保与TOC组件中的ID生成逻辑保持一致
-  slugify: (s) => s.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-'),
+  // 使用唯一ID生成函数，确保相同标题文本有不同ID
+  slugify: (s) => {
+    // 重置计数器以确保每次渲染都从头开始计数
+    if (!md._idCounters) {
+      md._idCounters = new Map();
+    }
+
+    const baseId = s.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '');
+    const count = md._idCounters.get(baseId) || 0;
+    md._idCounters.set(baseId, count + 1);
+
+    return count === 0 ? baseId : `${baseId}-${count + 1}`;
+  },
   permalink_class: 'header-anchor',
   callback: (token, info) => {
     // 收集标题信息
@@ -223,6 +283,33 @@ md.use(markdownItAnchor, {
     }
   }
 });
+
+
+// 添加自定义链接渲染规则，使所有链接在新标签页打开
+const defaultRender = md.renderer.rules.link_open || function (tokens, idx, options, env, self) {
+  return self.renderToken(tokens, idx, options);
+};
+
+md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+  // 为所有链接添加 target="_blank" 和 rel="noopener noreferrer" 属性
+  const token = tokens[idx];
+  const targetIndex = token.attrIndex('target');
+  const relIndex = token.attrIndex('rel');
+
+  if (targetIndex < 0) {
+    token.attrPush(['target', '_blank']);
+  } else {
+    token.attrs[targetIndex][1] = '_blank';
+  }
+
+  if (relIndex < 0) {
+    token.attrPush(['rel', 'noopener noreferrer']);
+  } else {
+    token.attrs[relIndex][1] = 'noopener noreferrer';
+  }
+
+  return defaultRender(tokens, idx, options, env, self);
+};
 
 // 设置标题点击事件
 const setupHeadingClickEvents = () => {
@@ -252,15 +339,19 @@ const setupHeadingClickEvents = () => {
       heading.classList.add('md-heading-active');
       setTimeout(() => {
         heading.classList.remove('md-heading-active');
-      }, 2000);
+      }, 100);
     });
   });
 };
 
 // 渲染Markdown内容
 const renderedContent = computed(() => {
-  // 重置标题列表
+  // 重置标题列表和ID计数器 - 重要修改
   headings.value = [];
+  idCounters.value.clear();
+  if (md._idCounters) {
+    md._idCounters.clear();
+  }
 
   if (!props.content) {
     console.warn('没有内容可渲染，目录将为空');
@@ -296,7 +387,7 @@ const renderedContent = computed(() => {
     setTimeout(() => {
       console.log('提取到的标题数量:', headings.value.length);
       if (headings.value.length > 0) {
-        console.log('提取到的标题:', headings.value.map(h => `${h.level}-${h.text}`).join(', '));
+        console.log('提取到的标题:', headings.value.map(h => `${h.level}-${h.text}(${h.id})`).join(', '));
       } else {
         console.warn('未能提取到任何标题，请检查Markdown内容是否包含标题标记(#)');
       }
@@ -394,6 +485,12 @@ const setupCodeCopy = () => {
 // 监听内容变化
 watch(() => props.content, () => {
   loading.value = true;
+  // 重置ID计数器，为新内容重新计数
+  idCounters.value.clear();
+  if (md._idCounters) {
+    md._idCounters.clear();
+  }
+
   nextTick(() => {
     loading.value = false;
     nextTick(() => {
@@ -423,15 +520,21 @@ onUnmounted(() => {
 
   // 恢复背景滚动（以防组件销毁时预览仍处于打开状态）
   document.body.style.overflow = '';
+
+  // 清理ID计数器
+  idCounters.value.clear();
+  if (md._idCounters) {
+    md._idCounters.clear();
+  }
 });
 </script>
 
 <style>
 /* 基础样式 */
 .md-renderer {
-  color: #334155;
-  line-height: 1.6;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #2d3748;
+  line-height: 1.7;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 16px;
   width: 100%;
   height: auto;
@@ -447,15 +550,16 @@ onUnmounted(() => {
   min-height: 100px;
   background-color: transparent !important;
   box-sizing: border-box;
+  word-spacing: 0.05em; /* 轻微增加单词间距，提高文本通透感 */
 }
 
 /* 通知和错误提示 */
 .md-notice {
   padding: 1.2rem;
-  background-color: rgba(236, 253, 245, 0.8);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background-color: rgba(243, 244, 246, 0.8);
+  border: 1px solid rgba(167, 139, 250, 0.3);
   border-radius: 0.8rem;
-  color: #047857;
+  color: #5b21b6;
   margin: 1.5rem;
   text-align: center;
   box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
@@ -482,19 +586,19 @@ onUnmounted(() => {
 .md-content h4,
 .md-content h5,
 .md-content h6 {
-  margin-top: 2.2em !important;
-  margin-bottom: 0.9em !important;
+  margin-top: 2.5em !important; /* 增加标题上方空间 */
+  margin-bottom: 1.2em !important; /* 增加标题下方空间 */
   font-weight: 600 !important;
   line-height: 1.3 !important;
   position: relative !important;
   scroll-margin-top: 80px !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   letter-spacing: -0.02em !important;
   padding-left: 0 !important;
   padding-bottom: 0.2em !important;
   border-radius: 4px !important;
-  background: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 100%);
 }
 
 /* 标题底部装饰线 */
@@ -510,7 +614,7 @@ onUnmounted(() => {
   left: 0;
   width: 2.5em;
   height: 3px;
-  background: linear-gradient(to right, #047857, #10b981);
+  background: linear-gradient(to right, #6366f1, #8b5cf6);
   border-radius: 6px;
   transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -532,7 +636,7 @@ onUnmounted(() => {
 .md-content h5:hover::after,
 .md-content h6:hover::after {
   width: 6em;
-  background: linear-gradient(to right, #047857, #10b981, #34d399);
+  background: linear-gradient(to right, #6366f1, #8b5cf6, #a78bfa);
 }
 
 /* 标题锚点链接 */
@@ -547,7 +651,7 @@ onUnmounted(() => {
   margin-right: 0.5em;
   opacity: 0;
   text-decoration: none;
-  color: #10b981;
+  color: #8b5cf6;
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   font-size: 0.85em;
   transform: translateX(-10px);
@@ -569,8 +673,8 @@ onUnmounted(() => {
   padding-bottom: 0.3em !important;
   letter-spacing: -0.5px !important;
   font-weight: 700 !important;
-  color: #064e3b !important;
-  background: linear-gradient(90deg, #064e3b 0%, #065f46 100%);
+  color: #4338ca !important;
+  background: linear-gradient(90deg, #4338ca 0%, #6366f1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -583,8 +687,8 @@ onUnmounted(() => {
   padding-bottom: 0.2em !important;
   letter-spacing: -0.3px !important;
   font-weight: 700 !important;
-  color: #065f46 !important;
-  background: linear-gradient(90deg, #065f46 0%, #047857 100%);
+  color: #4f46e5 !important;
+  background: linear-gradient(90deg, #4f46e5 0%, #6366f1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -595,18 +699,18 @@ onUnmounted(() => {
 
 /* 添加emoji图标到h2标题前 */
 .md-content h2::before {
-  content: "🍃";
+  content: "✦";
   margin-right: 8px;
   font-size: 1.4rem;
-  -webkit-text-fill-color: #10b981;
+  -webkit-text-fill-color: #8b5cf6;
 }
 
 .md-content h3 {
   font-size: 1.5rem !important;
   letter-spacing: -0.2px !important;
   font-weight: 600 !important;
-  color: #047857 !important;
-  background: linear-gradient(90deg, #047857 0%, #059669 100%);
+  color: #6366f1 !important;
+  background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -616,8 +720,8 @@ onUnmounted(() => {
 .md-content h4 {
   font-size: 1.3rem !important;
   font-weight: 600 !important;
-  color: #059669 !important;
-  background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+  color: #818cf8 !important;
+  background: linear-gradient(90deg, #818cf8 0%, #a78bfa 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -627,8 +731,8 @@ onUnmounted(() => {
 .md-content h5 {
   font-size: 1.1rem !important;
   font-weight: 600 !important;
-  color: #10b981 !important;
-  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  color: #a78bfa !important;
+  background: linear-gradient(90deg, #a78bfa 0%, #c4b5fd 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -638,8 +742,8 @@ onUnmounted(() => {
 .md-content h6 {
   font-size: 1rem !important;
   font-weight: 500 !important;
-  color: #34d399 !important;
-  background: linear-gradient(90deg, #34d399 0%, #6ee7b7 100%);
+  color: #c4b5fd !important;
+  background: linear-gradient(90deg, #c4b5fd 0%, #ddd6fe 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -648,130 +752,226 @@ onUnmounted(() => {
 
 /* 标题激活状态的样式 */
 .md-heading-active {
-  background: radial-gradient(circle at left, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0) 70%) !important;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 100%) !important;
   border-radius: 4px !important;
   padding-left: 8px !important;
-  animation: pulseHeading 1.5s cubic-bezier(0.22, 1, 0.36, 1) !important;
+  animation: fadeHeading 0.4s ease-out !important;
 }
 
-@keyframes pulseHeading {
-  0% { background-color: rgba(16, 185, 129, 0.15); transform: translateX(0); }
-  50% { background-color: rgba(16, 185, 129, 0.1); transform: translateX(2px); }
-  100% { background-color: rgba(16, 185, 129, 0.05); transform: translateX(0); }
+@keyframes fadeHeading {
+  0% {
+    background-color: rgba(99, 102, 241, 0.3);
+  }
+  100% {
+    background-color: rgba(99, 102, 241, 0);
+  }
 }
 
 /* ====== 引用块样式 ====== */
 .md-content blockquote {
-  margin: 2em auto;
-  padding: 1.8em 2em 1.8em 2.2em;
-  max-width: 800px;
-  width: 85%;
-  border-left: none;
-  background: linear-gradient(135deg, rgba(236, 253, 245, 0.8) 0%, rgba(240, 253, 250, 0.8) 100%);
-  border-radius: 1rem;
+  /* 基础布局与尺寸 */
   position: relative;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.05), 0 1px 1px rgba(0, 0, 0, 0.03);
-  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.5);
-  border-left: 1px solid rgba(255, 255, 255, 0.5);
+  margin: 2.8em auto; /* 增加引用块与周围内容的间距 */
+  padding: 1.8em 2em 1.8em 2.5em;
+  width: 94%;
+  max-width: 850px;
+
+  /* 主体设计 */
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.04) 0%, rgba(167, 139, 250, 0.08) 100%);
+  border-radius: 12px;
+
+  /* 边框效果 */
+  border: 1px solid rgba(138, 99, 255, 0.12);
+
+  /* 阴影效果 */
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.07),
+  0 2px 5px rgba(99, 102, 241, 0.03);
+
+  /* 过渡动画 */
+  transition: all 0.3s ease-out;
 }
 
-.md-content blockquote:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
-  transform: translateY(-3px) scale(1.01);
-}
-
-/* 引用块左侧装饰 */
-.md-content blockquote::before {
-  content: "";
-  position: absolute;
-  top: 5px;
-  left: 15px;
-  font-size: 70px;
-  line-height: 1;
-  color: rgba(16, 185, 129, 0.15);
-  font-family: 'Georgia', serif;
-  z-index: 0;
-}
-
-/* 引用块顶部装饰 */
-.md-content blockquote::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(to right, #047857, #10b981, #34d399);
-  border-radius: 4px 4px 0 0;
-}
-
+/* 内容样式 */
 .md-content blockquote p {
-  margin: 0.7em 0;
-  color: #334155;
-  font-size: 1.05rem;
-  line-height: 1.7;
   position: relative;
-  z-index: 1;
-  text-align: justify;
+  margin: 1em 0; /* 调整引用块内段落间距 */
+  color: #374151;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
 }
 
+/* 首段样式 */
 .md-content blockquote p:first-of-type {
   margin-top: 0;
+  font-weight: 500;
+  color: #1f2937;
 }
 
+/* 末段样式 */
 .md-content blockquote p:last-of-type {
   margin-bottom: 0;
 }
 
-/* 引用块中的代码 */
+/* 引号装饰 */
+.md-content blockquote::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 10px;
+  font-family: Georgia, serif;
+  font-size: 4.5em;
+  line-height: 1;
+  color: rgba(99, 102, 241, 0.15);
+  pointer-events: none;
+}
+
+/* 引用块悬停效果 */
+.md-content blockquote:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(167, 139, 250, 0.1) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.09),
+  0 3px 8px rgba(99, 102, 241, 0.04);
+}
+
+/* ====== 引用块内的行内代码样式 ====== */
 .md-content blockquote code {
-  background: rgba(255, 255, 255, 0.5);
-  color: #059669;
-  padding: 0.2em 0.5em;
+  /* 基本样式继承自全局行内代码 */
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+  font-weight: 500;
+
+  /* 引用块内的行内代码特殊颜色 */
+  background: rgba(99, 102, 241, 0.12);
+  color: #4338ca;
+
+  /* 边框效果 */
+  border: 1px solid rgba(99, 102, 241, 0.2);
   border-radius: 4px;
-  font-size: 0.9em;
+
+  /* 间距调整 */
+  padding: 0.15em 0.4em;
+  margin: 0 0.25em;
+
+  /* 阴影与过渡 */
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+/* 引用块中的行内代码悬停效果 */
+.md-content blockquote code:hover {
+  background: rgba(99, 102, 241, 0.18);
+  color: #3730a3;
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+/* 暗色模式适配 */
+.dark-mode .md-content blockquote {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-left: 4px solid rgba(139, 92, 246, 0.7);
+  box-shadow: 0 4px 15px rgba(15, 23, 42, 0.1),
+  0 2px 5px rgba(15, 23, 42, 0.06);
+}
+
+.dark-mode .md-content blockquote p {
+  color: #e5e7eb;
+}
+
+.dark-mode .md-content blockquote p:first-of-type {
+  color: #f3f4f6;
+}
+
+.dark-mode .md-content blockquote::before {
+  color: rgba(139, 92, 246, 0.2);
+}
+
+.dark-mode .md-content blockquote:hover {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(139, 92, 246, 0.13) 100%);
+  border-left: 4px solid rgba(139, 92, 246, 0.9);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15),
+  0 3px 8px rgba(15, 23, 42, 0.08);
+}
+
+.dark-mode .md-content blockquote code {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a5b4fc;
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.dark-mode .md-content blockquote code:hover {
+  background: rgba(139, 92, 246, 0.25);
+  color: #c4b5fd;
+  border-color: rgba(139, 92, 246, 0.35);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .md-content blockquote {
+    width: 95%;
+    padding: 1.5em 1.5em 1.5em 2em;
+    margin: 2em auto;
+  }
+
+  .md-content blockquote::before {
+    font-size: 3.5em;
+  }
+}
+
+@media (max-width: 480px) {
+  .md-content blockquote {
+    width: 96%;
+    padding: 1.2em 1.2em 1.2em 1.6em;
+    margin: 1.8em auto;
+  }
+
+  .md-content blockquote p {
+    font-size: 1rem;
+  }
+
+  .md-content blockquote::before {
+    font-size: 3em;
+    top: -2px;
+    left: 7px;
+  }
 }
 
 /* 代码块样式 - Atom One Dark Theme */
 .md-code-block {
-  margin: 2em auto;
-  border-radius: 6px;
+  margin: 2.5em auto; /* 增加代码块与周围内容的间距 */
+  border-radius: 8px; /* 增加圆角半径 */
   overflow: hidden;
   font-family: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   position: relative;
   line-height: 0;
   background-color: #282c34;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15), 0 3px 8px rgba(0, 0, 0, 0.1); /* 增强阴影效果 */
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-  max-width: 90%;
+  max-width: 92%; /* 略微增加最大宽度 */
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .md-code-block:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+  transform: translateY(-3px); /* 增强悬停效果 */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 5px 15px rgba(0, 0, 0, 0.1); /* 增强悬停阴影 */
 }
-
 
 /* 代码块头部 - macOS 风格 */
 .md-code-header {
-  height: 36px;
+  height: 38px; /* 稍微增加头部高度 */
   background: #21252b;
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 14px;
   position: relative;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
-
 
 .md-code-dots {
   display: flex;
@@ -821,14 +1021,14 @@ onUnmounted(() => {
 /* 复制按钮样式 */
 .md-copy-button {
   font-size: 12px;
-  padding: 3px 8px;
+  padding: 3px 10px; /* 增加按钮内边距 */
   border-radius: 4px;
   border: none;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1); /* 增加按钮背景透明度 */
   color: #abb2bf;
   cursor: pointer;
   opacity: 0;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease; /* 加速过渡效果 */
   font-weight: 500;
   letter-spacing: 0.5px;
 }
@@ -836,14 +1036,14 @@ onUnmounted(() => {
 /* 折叠按钮样式 */
 .md-collapse-button {
   font-size: 12px;
-  padding: 3px 8px;
+  padding: 3px 10px; /* 增加按钮内边距 */
   border-radius: 4px;
   border: none;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1); /* 增加按钮背景透明度 */
   color: #abb2bf;
   cursor: pointer;
   opacity: 0;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease; /* 加速过渡效果 */
   font-weight: 500;
   letter-spacing: 0.5px;
 }
@@ -855,8 +1055,9 @@ onUnmounted(() => {
 
 .md-copy-button:hover,
 .md-collapse-button:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.2);
   color: #ffffff;
+  transform: translateY(-1px); /* 添加悬停时的微小位移 */
 }
 
 .md-copy-button.md-copied {
@@ -864,21 +1065,28 @@ onUnmounted(() => {
   color: #ffffff;
 }
 
-/* 代码内容区域 */
+/* 代码内容区域 - 左对齐样式 */
 .md-content pre {
   margin: 0 !important;
-  padding: 16px !important;
+  padding: 18px !important; /* 增加内边距 */
+  padding-left: 16px !important; /* 增加左侧内边距 */
   color: #abb2bf !important;
   font-size: 14px !important;
-  line-height: 1.5 !important;
+  line-height: 1.6 !important; /* 增加行高 */
   overflow-x: auto !important;
   font-family: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace !important;
   border: none !important;
   display: block !important;
   min-height: 0 !important;
-  border-radius: 0 0 6px 6px !important;
+  border-radius: 0 0 8px 8px !important;
 }
 
+/* 代码左对齐特定样式 */
+.md-code-left-aligned {
+  text-align: left !important;
+  text-indent: 0 !important;
+  white-space: pre !important;
+}
 
 /* 代码折叠状态 */
 .md-content pre.md-code-collapsed {
@@ -919,7 +1127,6 @@ onUnmounted(() => {
 .md-content pre br:last-child {
   display: none !important;
 }
-
 
 /* Atom One Dark 语法高亮 */
 .hljs-comment,
@@ -1099,67 +1306,25 @@ onUnmounted(() => {
   background-color: rgba(255, 255, 255, 0.25);
 }
 
-/* 响应式优化 */
-@media (max-width: 768px) {
-  .md-code-block {
-    max-width: 95%;
-  }
-
-  .md-code-header {
-    height: 32px;
-    padding: 0 10px;
-  }
-
-  .md-code-dot {
-    width: 10px;
-    height: 10px;
-  }
-
-  .md-code-language {
-    font-size: 11px;
-  }
-
-  .md-content pre {
-    padding: 12px !important;
-    font-size: 13px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .md-code-language {
-    display: none;
-  }
-
-  .md-code-dot {
-    width: 8px;
-    height: 8px;
-  }
-
-  .md-content pre {
-    padding: 10px !important;
-    font-size: 12px !important;
-  }
-
-  .md-copy-button {
-    font-size: 10px;
-    padding: 2px 6px;
-  }
-}
-
-
-/* 基本文本样式 */
+/* 基本文本样式 - 调整段落间距 */
 .md-content p {
-  margin: 1.2em 0;
-  line-height: 1.8;
+  margin: 2.5em 0; /* 进一步增加段落间距 */
+  line-height: 1.9; /* 增加行高，让文本排版更加松散 */
   color: #334155;
   animation: fadeIn 0.8s ease-out;
   font-size: 1.05rem;
+  letter-spacing: 0.015em; /* 增加字母间距 */
+}
+
+/* 确保第一个段落没有上边距 */
+.md-content > p:first-child {
+  margin-top: 0;
 }
 
 .md-content a {
-  color: #059669;
+  color: #6366f1;
   text-decoration: none;
-  border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.3);
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   padding-bottom: 1px;
   font-weight: 500;
@@ -1167,12 +1332,12 @@ onUnmounted(() => {
   white-space: nowrap;
   background-size: 100% 200%;
   background-position: 0 0;
-  background-image: linear-gradient(to bottom, transparent 50%, rgba(16, 185, 129, 0.1) 50%);
+  background-image: linear-gradient(to bottom, transparent 50%, rgba(139, 92, 246, 0.1) 50%);
 }
 
 .md-content a:hover {
-  color: #10b981;
-  border-bottom: 1px solid rgba(16, 185, 129, 0.8);
+  color: #8b5cf6;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.8);
   background-position: 0 100%;
 }
 
@@ -1183,7 +1348,7 @@ onUnmounted(() => {
   height: 1px;
   bottom: 0;
   left: 0;
-  background-color: rgba(16, 185, 129, 0.8);
+  background-color: rgba(139, 92, 246, 0.8);
   transform: scaleX(0);
   transform-origin: bottom right;
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1194,28 +1359,34 @@ onUnmounted(() => {
   transform-origin: bottom left;
 }
 
-/* 列表样式 */
+/* 列表样式 - 调整间距 */
 .md-content ul,
 .md-content ol {
   padding-left: 1.8em;
-  margin: 1.4em 0;
+  margin: 2.5em 0; /* 增加列表与周围内容的间距 */
   color: #334155;
   animation: fadeIn 0.8s ease-out;
 }
 
 .md-content li {
-  margin-bottom: 0.7em;
+  margin-bottom: 1em; /* 增加列表项间距 */
   position: relative;
-  line-height: 1.6;
+  line-height: 1.75;
   font-size: 1.05rem;
+  padding-left: 0.5em; /* 添加列表项左侧内边距 */
+}
+
+/* 列表项间距微调 */
+.md-content li + li {
+  margin-top: 0.8em; /* 确保列表项之间有足够间距 */
 }
 
 .md-content ul li::marker {
-  color: #10b981;
+  color: #8b5cf6;
 }
 
 .md-content ol li::marker {
-  color: #10b981;
+  color: #8b5cf6;
   font-weight: 600;
 }
 
@@ -1224,70 +1395,254 @@ onUnmounted(() => {
   transition: transform 0.3s ease;
 }
 
-/* 表格样式 */
+/* ====== 高级表格样式 - 未来科技风 ====== */
 .md-content table {
-  width: 90%;
-  margin: 2.5em auto;
+  --table-primary: #6366f1;
+  --table-secondary: #a78bfa;
+  --table-highlight: #818cf8;
+  --table-header-bg: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+  --table-row-even: rgba(243, 244, 246, 0.6);
+  --table-border-light: rgba(99, 102, 241, 0.12);
+
+  width: 92%;
+  margin: 3.5em auto 4.5em; /* 增加表格上下边距 */
   border-collapse: separate;
   border-spacing: 0;
-  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
-  animation: fadeIn 0.8s ease-out;
-  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1),
+  0 3px 10px rgba(0, 0, 0, 0.05),
+  0 1px 0 rgba(99, 102, 241, 0.05) inset;
+  background: white;
+  position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  transform: translateZ(0);
+  backdrop-filter: blur(20px);
+  animation: tableAppear 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  border: 1px solid var(--table-border-light);
+}
+
+/* 表格外发光效果 */
+.md-content table::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  background: linear-gradient(90deg, #6366f1, #a78bfa, #818cf8, #6366f1);
+  border-radius: 1.1rem;
+  filter: blur(5px);
+  opacity: 0.12;
+  animation: borderGlow 8s linear infinite;
+}
+
+/* 表头样式 */
+.md-content table thead {
+  position: relative;
+  z-index: 3;
 }
 
 .md-content table th {
-  background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
-  font-weight: 600;
+  background: var(--table-header-bg);
+  font-weight: 700;
   text-align: left;
-  padding: 16px 20px;
-  border-bottom: 2px solid #6ee7b7;
-  color: #065f46;
+  padding: 1.2rem 1.5rem;
+  color: white;
   font-size: 0.95rem;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+  position: relative;
+  white-space: nowrap;
 }
 
+/* 表头分隔线 */
+.md-content table th::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.md-content table th:last-child::after {
+  display: none;
+}
+
+/* 表头第一个和最后一个单元格的圆角 */
 .md-content table th:first-child {
-  border-top-left-radius: 16px;
+  border-top-left-radius: 1rem;
 }
 
 .md-content table th:last-child {
-  border-top-right-radius: 16px;
+  border-top-right-radius: 1rem;
 }
 
+/* 表格内容单元格 */
 .md-content table td {
-  padding: 14px 20px;
-  border-bottom: 1px solid #e5e7eb;
-  color: #334155;
-  transition: background-color 0.2s ease;
-  font-size: 1rem;
-}
-
-.md-content table tr {
-  background-color: #ffffff;
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--table-border-light);
+  border-right: 1px solid var(--table-border-light); /* 添加右边框 */
+  color: #1e293b;
   transition: all 0.3s ease;
+  font-size: 0.95rem;
+  position: relative;
+  overflow: hidden;
 }
 
-.md-content table tr:last-child td {
+/* 最后一列单元格不需要右边框 */
+.md-content table td:last-child {
+  border-right: none;
+}
+
+/* 单元格悬浮高亮效果 */
+.md-content table td:hover::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--table-primary), var(--table-secondary));
+  animation: slideIn 0.3s forwards;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* 表格行 */
+.md-content table tr {
+  background-color: white;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* 偶数行背景 */
+.md-content table tbody tr:nth-child(2n) {
+  background-color: var(--table-row-even);
+}
+
+/* 最后一行圆角 */
+.md-content table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 1rem;
+}
+
+.md-content table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 1rem;
+}
+
+.md-content table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.md-content table tr:last-child td:first-child {
-  border-bottom-left-radius: 16px;
+/* 行悬浮效果 */
+.md-content table tbody tr:hover {
+  background-color: rgba(99, 102, 241, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  z-index: 2;
 }
 
-.md-content table tr:last-child td:last-child {
-  border-bottom-right-radius: 16px;
+/* 名称列样式 - 左边列通常是名称 */
+.md-content table td:first-child {
+  font-weight: 600;
+  color: var(--table-primary);
+  letter-spacing: -0.01em;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-.md-content table tr:nth-child(2n) {
-  background-color: #f9fafb;
+/* 用途列样式 - 右边列通常是用途 */
+.md-content table td:last-child {
+  line-height: 1.5;
 }
 
-.md-content table tr:hover {
-  background-color: #ecfdf5;
+/* 表格动画 */
+@keyframes tableAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes borderGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 深色模式适配 */
+.dark-mode .md-content table {
+  --table-primary: #a78bfa;
+  --table-secondary: #c4b5fd;
+  --table-highlight: #818cf8;
+  --table-header-bg: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+  --table-row-even: rgba(30, 41, 59, 0.6);
+  --table-border-light: rgba(139, 92, 246, 0.2);
+
+  background: #1e293b;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25),
+  0 3px 10px rgba(0, 0, 0, 0.15),
+  0 1px 0 rgba(99, 102, 241, 0.1) inset;
+}
+
+.dark-mode .md-content table::before {
+  opacity: 0.2;
+}
+
+.dark-mode .md-content table td {
+  color: #e2e8f0;
+  border-right: 1px solid var(--table-border-light); /* 深色模式下的右边框 */
+}
+
+.dark-mode .md-content table td:last-child {
+  border-right: none;
+}
+
+.dark-mode .md-content table tr {
+  background-color: #1e293b;
+}
+
+.dark-mode .md-content table tbody tr:hover {
+  background-color: rgba(99, 102, 241, 0.15);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .md-content table {
+    width: 98%;
+    margin: 2em auto 3em;
+    font-size: 0.9rem;
+  }
+
+  .md-content table th,
+  .md-content table td {
+    padding: 0.9rem 1rem;
+  }
+}
+
+/* 超小屏幕滚动处理 */
+@media (max-width: 480px) {
+  .md-content table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
 }
 
 /* 图片样式 */
@@ -1295,7 +1650,7 @@ onUnmounted(() => {
   max-width: 90%;
   height: auto;
   display: block;
-  margin: 2.5em auto;
+  margin: 3em auto; /* 增加图片与周围内容的间距 */
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1310,13 +1665,13 @@ onUnmounted(() => {
 
 /* 水平线 */
 .md-content hr {
-  margin: 3.5em auto;
+  margin: 4em auto; /* 增加分割线与周围内容的间距 */
   height: 2px;
   max-width: 80%;
   background: linear-gradient(to right,
-  rgba(16, 185, 129, 0),
-  rgba(16, 185, 129, 0.3),
-  rgba(16, 185, 129, 0)
+  rgba(99, 102, 241, 0),
+  rgba(99, 102, 241, 0.3),
+  rgba(99, 102, 241, 0)
   );
   border: none;
   animation: expandWidth 1.5s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1324,20 +1679,26 @@ onUnmounted(() => {
 }
 
 .md-content hr::before {
-  content: "✿";
+  content: "✧";
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 1.2rem;
-  color: rgba(16, 185, 129, 0.5);
+  color: rgba(99, 102, 241, 0.5);
   background: #ffffff;
   padding: 0 20px;
 }
 
 @keyframes expandWidth {
-  from { transform: scaleX(0.3); opacity: 0; }
-  to { transform: scaleX(1); opacity: 1; }
+  from {
+    transform: scaleX(0.3);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
 }
 
 /* 自定义提示框样式 */
@@ -1345,8 +1706,8 @@ onUnmounted(() => {
 .md-content .warning,
 .md-content .info,
 .md-content .note {
-  margin: 2em auto;
-  padding: 1.5em 1.8em 1.5em 4em;
+  margin: 2.8em auto; /* 增加提示框与周围内容的间距 */
+  padding: 1.8em 2em 1.8em 4.5em; /* 增加内边距 */
   border-radius: 12px;
   position: relative;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -1376,14 +1737,14 @@ onUnmounted(() => {
 }
 
 .md-content .tip {
-  border-left-color: #10b981;
-  background-color: rgba(236, 253, 245, 0.6);
+  border-left-color: #8b5cf6;
+  background-color: rgba(243, 244, 246, 0.6);
 }
 
 .md-content .tip::before {
   content: "💡";
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  color: #059669;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  color: #6366f1;
 }
 
 .md-content .warning {
@@ -1398,59 +1759,166 @@ onUnmounted(() => {
 }
 
 .md-content .info {
-  border-left-color: #10b981;
-  background-color: rgba(236, 253, 245, 0.6);
+  border-left-color: #3b82f6;
+  background-color: rgba(243, 244, 246, 0.6);
 }
 
 .md-content .info::before {
   content: "ℹ️";
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  color: #059669;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #3b82f6;
 }
 
 .md-content .note {
-  border-left-color: #14b8a6;
-  background-color: rgba(240, 253, 250, 0.6);
+  border-left-color: #8b5cf6;
+  background-color: rgba(245, 243, 255, 0.6);
 }
 
 .md-content .note::before {
   content: "📝";
-  background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
-  color: #0f766e;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  color: #8b5cf6;
 }
 
-/* 确保行内代码不受影响 */
+/* 全新设计的行内代码样式 */
 .md-content :not(pre) > code {
-  font-family: 'Fira Code', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-  font-size: 0.9em;
-  padding: 0.2em 0.5em;
-  background-color: rgba(16, 185, 129, 0.08);
-  border-radius: 6px;
-  color: #059669;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  border: 1px solid rgba(16, 185, 129, 0.1);
+  /* 基础字体设置 */
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+  font-weight: 550;
+  letter-spacing: 0;
+
+  /* 高级视觉效果 */
+  color: #4839E5; /* 更明亮的蓝紫色 */
+  background: linear-gradient(120deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.13) 100%);
+
+  /* 精致边框设计 */
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  border-radius: 5px;
+  box-shadow:
+      0 2px 3px rgba(124, 58, 237, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+  /* 间距与定位优化 */
+  padding: 0.15em 0.5em 0.12em;
+  margin: 0 0.35em; /* 增加左右间距，与文本分隔更明显 */
+  vertical-align: baseline;
+  position: relative;
+  top: -0.5px;
+
+  /* 动效设计 */
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+
+  /* 细节处理 */
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+
+  /* 悬停指示 */
+  cursor: default;
 }
 
+/* 行内代码悬停效果 */
 .md-content :not(pre) > code:hover {
-  background-color: rgba(16, 185, 129, 0.12);
-  transform: translateY(-1px);
+  color: #3626D9; /* 悬停时颜色更深 */
+  background: linear-gradient(120deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.18) 100%);
+  border-color: rgba(124, 58, 237, 0.35);
+  box-shadow:
+      0 3px 6px rgba(124, 58, 237, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* 行内代码点击效果 */
+.md-content :not(pre) > code:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 1px 2px rgba(124, 58, 237, 0.08);
+}
+
+/* 调整段落内多个行内代码之间的间距 */
+.md-content p code + code {
+  margin-left: 0.6em; /* 确保多个代码之间有足够间距 */
+}
+
+/* 针对悬停状态的细节优化 */
+.md-content :not(pre) > code::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.2), rgba(139, 92, 246, 0.2));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.md-content :not(pre) > code:hover::after {
+  opacity: 1;
+}
+
+/* 暗色模式下的行内代码样式 */
+.dark-mode .md-content :not(pre) > code {
+  color: #A78BFA; /* 明亮的紫色 */
+  background: linear-gradient(120deg, rgba(79, 70, 229, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  box-shadow:
+      0 2px 3px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* 暗色模式下的行内代码悬停效果 */
+.dark-mode .md-content :not(pre) > code:hover {
+  color: #C4B5FD; /* 更浅的紫色 */
+  background: linear-gradient(120deg, rgba(79, 70, 229, 0.25) 0%, rgba(139, 92, 246, 0.2) 100%);
+  border-color: rgba(167, 139, 250, 0.4);
+  box-shadow:
+      0 3px 6px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* 暗色模式下的行内代码点击效果 */
+.dark-mode .md-content :not(pre) > code:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 暗色模式下悬停状态的细节优化 */
+.dark-mode .md-content :not(pre) > code::after {
+  background: linear-gradient(90deg, rgba(167, 139, 250, 0.3), rgba(196, 181, 253, 0.3));
 }
 
 /* 动画定义 */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInFromLeft {
-  from { transform: translateX(-20px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes slideUpFade {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 滚动条自定义 */
@@ -1465,14 +1933,14 @@ onUnmounted(() => {
 }
 
 .md-renderer::-webkit-scrollbar-thumb {
-  background-color: rgba(16, 185, 129, 0.2);
+  background-color: rgba(99, 102, 241, 0.2);
   border-radius: 10px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
 
 .md-renderer::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(16, 185, 129, 0.4);
+  background-color: rgba(99, 102, 241, 0.4);
 }
 
 /* 暗色模式适配 */
@@ -1486,8 +1954,8 @@ onUnmounted(() => {
 .dark-mode .md-content h4,
 .dark-mode .md-content h5,
 .dark-mode .md-content h6 {
-  color: #34d399 !important;
-  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  color: #a78bfa !important;
+  background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1495,7 +1963,7 @@ onUnmounted(() => {
 }
 
 .dark-mode .md-content h2::before {
-  -webkit-text-fill-color: #34d399;
+  -webkit-text-fill-color: #a78bfa;
 }
 
 .dark-mode .md-content h1::after,
@@ -1504,7 +1972,7 @@ onUnmounted(() => {
 .dark-mode .md-content h4::after,
 .dark-mode .md-content h5::after,
 .dark-mode .md-content h6::after {
-  background: linear-gradient(to right, #10b981, #34d399);
+  background: linear-gradient(to right, #8b5cf6, #a78bfa);
 }
 
 .dark-mode .md-content h1:hover::after,
@@ -1513,18 +1981,18 @@ onUnmounted(() => {
 .dark-mode .md-content h4:hover::after,
 .dark-mode .md-content h5:hover::after,
 .dark-mode .md-content h6:hover::after {
-  background: linear-gradient(to right, #10b981, #34d399, #6ee7b7);
+  background: linear-gradient(to right, #8b5cf6, #a78bfa, #c4b5fd);
 }
 
 .dark-mode .md-content blockquote {
-  background: linear-gradient(135deg, rgba(6, 78, 59, 0.2) 0%, rgba(6, 95, 70, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.5) 100%);
   box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dark-mode .md-content blockquote::before {
-  color: rgba(16, 185, 129, 0.15);
+  color: rgba(139, 92, 246, 0.15);
 }
 
 .dark-mode .md-content blockquote p {
@@ -1532,29 +2000,23 @@ onUnmounted(() => {
 }
 
 .dark-mode .md-content blockquote code {
-  background-color: rgba(6, 95, 70, 0.3);
-  color: #6ee7b7;
+  background-color: rgba(30, 41, 59, 0.5);
+  color: #c4b5fd;
 }
 
 .dark-mode .md-content a {
-  color: #34d399;
-  border-bottom: 1px solid rgba(52, 211, 153, 0.3);
-  background-image: linear-gradient(to bottom, transparent 50%, rgba(16, 185, 129, 0.15) 50%);
+  color: #a78bfa;
+  border-bottom: 1px solid rgba(167, 139, 250, 0.3);
+  background-image: linear-gradient(to bottom, transparent 50%, rgba(139, 92, 246, 0.15) 50%);
 }
 
 .dark-mode .md-content a:hover {
-  color: #6ee7b7;
-  border-bottom: 1px solid rgba(52, 211, 153, 0.8);
+  color: #c4b5fd;
+  border-bottom: 1px solid rgba(167, 139, 250, 0.8);
 }
 
 .dark-mode .md-content a::after {
-  background-color: rgba(52, 211, 153, 0.8);
-}
-
-.dark-mode .md-content :not(pre) > code {
-  background-color: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background-color: rgba(167, 139, 250, 0.8);
 }
 
 .dark-mode .md-content p,
@@ -1562,49 +2024,21 @@ onUnmounted(() => {
   color: #e2e8f0;
 }
 
-.dark-mode .md-content table {
-  background: #0f172a;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
-}
-
-.dark-mode .md-content table th {
-  background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
-  color: #6ee7b7;
-  border-bottom: 2px solid #047857;
-}
-
-.dark-mode .md-content table td {
-  border-bottom: 1px solid #334155;
-  color: #e2e8f0;
-}
-
-.dark-mode .md-content table tr {
-  background-color: #0f172a;
-}
-
-.dark-mode .md-content table tr:nth-child(2n) {
-  background-color: #1e293b;
-}
-
-.dark-mode .md-content table tr:hover {
-  background-color: #064e3b;
-}
-
 .dark-mode .md-content hr::before {
   background: #0f172a;
-  color: rgba(16, 185, 129, 0.5);
+  color: rgba(139, 92, 246, 0.5);
 }
 
 .dark-mode .md-content .tip,
 .dark-mode .md-content .warning,
 .dark-mode .md-content .info,
 .dark-mode .md-content .note {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.7) 0%, rgba(30, 41, 59, 0.7) 100%);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%);
 }
 
 .dark-mode .md-content .tip::before {
-  background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
-  color: #34d399;
+  background: linear-gradient(135deg, #312e81 0%, #4338ca 100%);
+  color: #a78bfa;
 }
 
 .dark-mode .md-content .warning::before {
@@ -1613,13 +2047,13 @@ onUnmounted(() => {
 }
 
 .dark-mode .md-content .info::before {
-  background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
-  color: #34d399;
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  color: #93c5fd;
 }
 
 .dark-mode .md-content .note::before {
-  background: linear-gradient(135deg, #134e4a 0%, #115e59 100%);
-  color: #2dd4bf;
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+  color: #c4b5fd;
 }
 
 .dark-mode .md-content pre.md-code-collapsed::after {
@@ -1665,7 +2099,7 @@ onUnmounted(() => {
 
 .preview-counter {
   font-size: 14px;
-  background-color: rgba(5, 150, 105, 0.6);
+  background-color: rgba(99, 102, 241, 0.6);
   padding: 6px 12px;
   border-radius: 30px;
   font-weight: 500;
@@ -1674,7 +2108,7 @@ onUnmounted(() => {
 }
 
 .preview-close-btn {
-  background: rgba(5, 150, 105, 0.6);
+  background: rgba(99, 102, 241, 0.6);
   border: none;
   color: white;
   cursor: pointer;
@@ -1689,7 +2123,7 @@ onUnmounted(() => {
 }
 
 .preview-close-btn:hover {
-  background-color: rgba(16, 185, 129, 0.8);
+  background-color: rgba(139, 92, 246, 0.8);
   transform: scale(1.1);
 }
 
@@ -1715,12 +2149,12 @@ onUnmounted(() => {
   animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* 固定位置的导航按钮 - 重新设计 */
+/* 导航按钮 */
 .preview-nav-btn {
   position: fixed;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(5, 150, 105, 0.6);
+  background: rgba(99, 102, 241, 0.6);
   border: none;
   width: 70px;
   height: 70px;
@@ -1735,7 +2169,7 @@ onUnmounted(() => {
 }
 
 .preview-nav-btn:hover {
-  background: rgba(16, 185, 129, 0.8);
+  background: rgba(139, 92, 246, 0.8);
   transform: translateY(-50%) scale(1.1);
   box-shadow: 0 6px 25px rgba(0, 0, 0, 0.5);
 }
@@ -1806,19 +2240,10 @@ onUnmounted(() => {
     max-width: 95%;
   }
 
-  .md-code-header {
-    height: 36px;
-  }
-
-  .md-content pre {
-    padding: 12px !important;
-    font-size: 13px !important;
-  }
-
   .preview-nav-btn {
     width: 55px;
     height: 55px;
-    background: rgba(5, 150, 105, 0.7);
+    background: rgba(99, 102, 241, 0.7);
   }
 
   .preview-nav-btn svg {

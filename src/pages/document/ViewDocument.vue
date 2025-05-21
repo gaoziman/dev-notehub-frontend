@@ -326,8 +326,9 @@ const recentArticles = ref([]);
 const prevDocument = ref(null);
 const nextDocument = ref(null);
 
-// 处理目录折叠状态变化
+// 处理目录折叠状态变化 - 改进的状态管理
 const handleTocCollapsed = (collapsed) => {
+  console.log('ViewDocument收到目录折叠状态变化:', collapsed);
   tocCollapsed.value = collapsed;
 
   // 保存目录状态到本地存储
@@ -507,18 +508,42 @@ const updateCategoryInfo = (category) => {
   }
 };
 
-// 从Markdown渲染器接收目录
+// 从Markdown渲染器接收目录 - 改进的目录处理逻辑
 const handleTocFromMarkdown = (headings) => {
-  console.log('从Markdown渲染器收到目录:', headings.length, '个标题');
+  console.log('ViewDocument从MarkdownViewer收到目录:', headings.length, '个标题');
 
-  // 调试目录数据
+  // 验证目录数据的完整性
   if (headings.length === 0) {
-    console.warn('未检测到标题，请检查Markdown内容格式');
+    console.warn('未检测到标题，可能原因：');
+    console.warn('1. Markdown内容中没有标题标记(#)');
+    console.warn('2. 标题位于代码块内');
+    console.warn('3. 内容尚未完全加载');
   } else {
-    console.log('目录数据:', headings);
+    // 显示检测到的标题信息
+    console.log('检测到的标题：');
+    headings.forEach((heading, index) => {
+      console.log(`${index + 1}. [H${heading.level}] ${heading.text} (ID: ${heading.id})`);
+    });
+
+    // 验证ID的唯一性
+    const idSet = new Set();
+    const duplicates = [];
+    headings.forEach(heading => {
+      if (idSet.has(heading.id)) {
+        duplicates.push(heading.id);
+      } else {
+        idSet.add(heading.id);
+      }
+    });
+
+    if (duplicates.length > 0) {
+      console.error('发现重复的标题ID:', duplicates);
+    } else {
+      console.log('✓ 所有标题ID都是唯一的');
+    }
   }
 
-  // 如果有markdownViewerRef，可以尝试手动设置
+  // 如果有markdownViewerRef，可以尝试手动刷新
   if (markdownViewerRef.value) {
     nextTick(() => {
       console.log('尝试手动刷新目录视图');
@@ -573,11 +598,13 @@ onMounted(() => {
     const savedSidebarState = localStorage.getItem('doc-sidebar-collapsed');
     if (savedSidebarState !== null) {
       sidebarCollapsed.value = savedSidebarState === 'true';
+      console.log('恢复侧边栏状态:', sidebarCollapsed.value);
     }
 
     const savedTocState = localStorage.getItem('doc-toc-collapsed');
     if (savedTocState !== null) {
       tocCollapsed.value = savedTocState === 'true';
+      console.log('恢复目录折叠状态:', tocCollapsed.value);
     }
   } catch (e) {
     console.error('无法读取存储状态:', e);
@@ -593,7 +620,20 @@ watch(
       if (newId && newId !== documentId.value) {
         console.log('文档ID已变更:', newId);
         documentId.value = newId;
+        // 重置状态后重新获取文档
+        document.value = {};
+        documentContent.value = '';
         fetchDocument();
+      }
+    }
+);
+
+// 监听内容变化 - 确保状态正确重置
+watch(
+    () => documentContent.value,
+    (newContent) => {
+      if (newContent) {
+        console.log('文档内容已更新，长度:', newContent.length);
       }
     }
 );

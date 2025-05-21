@@ -13,7 +13,7 @@
             :title="props.collapsed ? '展开目录' : '收起目录'"
         >
           <svg viewBox="0 0 24 24" class="toggle-icon" :class="{ 'is-collapsed': props.collapsed }">
-            <path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z" />
+            <path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"/>
           </svg>
         </button>
       </div>
@@ -21,17 +21,18 @@
       <div class="toc-scrollable" ref="tocScrollableRef">
         <div class="toc-items">
           <template v-if="headings.length > 0">
-            <a v-for="heading in headings"
-               :key="heading.id"
-               :href="`#${heading.id}`"
-               :class="[
-                'toc-item',
-                `toc-level-${heading.level}`,
-                { 'active': activeHeadingId === heading.id }
-              ]"
-               @click.prevent="scrollToHeading(heading.id)">
-              <span class="toc-indicator"></span>
-              <span class="toc-text">{{ heading.text }}</span>
+            <a
+                v-for="heading in headings"
+                :key="heading.id"
+                :href="`#${heading.id}`"
+                :class="[
+            'toc-item',
+            `toc-level-${heading.level}`,
+            { 'active': activeHeadingId === heading.id }
+            ]"
+                @click.prevent="scrollToHeading(heading.id)"
+            >
+              {{ heading.text }}
             </a>
           </template>
           <div v-else class="toc-empty">
@@ -65,7 +66,6 @@ const emit = defineEmits(['update-active-heading', 'toc-collapsed']);
 
 // 状态管理
 const headings = ref([]);
-const isCollapsed = ref(false);
 const activeHeadingId = ref('');
 const tocContainerRef = ref(null);
 const tocWrapperRef = ref(null);
@@ -74,10 +74,28 @@ const observer = ref(null);
 const scrollYPosition = ref(0);
 const headerHeight = ref(64);
 
+// 添加ID计数器来确保同名标题有不同的ID
+const idCounters = ref(new Map());
 
-// 提取标题函数
+// 生成唯一ID的函数 - 与MarkdownRenderer.vue保持一致
+const generateUniqueId = (text) => {
+  // 基础ID生成：将文本转换为小写并替换非字母数字字符
+  const baseId = text.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '');
+
+  // 检查是否已存在此ID
+  const count = idCounters.value.get(baseId) || 0;
+  idCounters.value.set(baseId, count + 1);
+
+  // 如果是第一次出现，直接使用baseId；否则添加计数器
+  return count === 0 ? baseId : `${baseId}-${count + 1}`;
+};
+
+// 修改后的提取标题函数 - 只提取1-3级标题
 const extractHeadings = (text) => {
   if (!text) return [];
+
+  // 重置ID计数器，确保每次提取都从头开始计数
+  idCounters.value.clear();
 
   const extracted = [];
   const lines = text.split('\n');
@@ -103,15 +121,21 @@ const extractHeadings = (text) => {
       const match = line.match(/^(#{1,6})\s+(.+)$/);
       if (match) {
         const level = match[1].length;
-        const text = match[2].trim();
-        const id = text.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-');
 
-        extracted.push({
-          id,
-          text,
-          level,
-          line: index + 1
-        });
+        // 只包含1、2、3级标题
+        if (level <= 3) {
+          const text = match[2].trim();
+
+          // 使用唯一ID生成函数
+          const id = generateUniqueId(text);
+
+          extracted.push({
+            id,
+            text,
+            level,
+            line: index + 1
+          });
+        }
       }
     }
   });
@@ -335,6 +359,9 @@ const handleWindowEvents = throttle(() => {
 
 // 监听内容变化
 watch(() => props.content, (newContent) => {
+  // 每次内容变化时重置ID计数器
+  idCounters.value.clear();
+
   if (newContent) {
     headings.value = extractHeadings(newContent);
 
@@ -365,9 +392,7 @@ onMounted(() => {
   try {
     const savedCollapsed = localStorage.getItem('md-toc-collapsed');
     if (savedCollapsed !== null) {
-      isCollapsed.value = savedCollapsed === 'true';
-      // 初始化时也发送折叠状态
-      emit('toc-collapsed', isCollapsed.value);
+      emit('toc-collapsed', savedCollapsed === 'true');
     }
   } catch (e) {
     console.error('无法读取目录状态:', e);
@@ -405,81 +430,80 @@ onUnmounted(() => {
     observer.value.disconnect();
     observer.value = null;
   }
+
+  // 清理ID计数器
+  idCounters.value.clear();
 });
 </script>
 
 <style scoped>
+/* 基础容器 */
 .toc-container {
   position: fixed;
-  right: 0;
-  top: 80px; /* 初始值，会被JS动态更新 */
-  width: var(--toc-width, 260px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  right: 12px;
+  top: 80px;
+  width: 240px;
   z-index: 20;
-  /* 确保目录始终贴靠右侧边缘 */
-  pointer-events: auto;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  filter: drop-shadow(0 8px 15px rgba(0, 0, 0, 0.06));
 }
 
+/* 主容器 */
 .toc-wrapper {
-  background-color: #ffffff;
-  border-radius: 12px 0 0 12px; /* 只对左侧设置圆角 */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 140px); /* 初始值，会被JS动态更新 */
-  transition: max-height 0.3s ease;
-  border: 1px solid #e5e7eb;
-  border-right: none; /* 移除右侧边框 */
+  max-height: calc(100vh - 120px);
+  background-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
+/* 标题栏 */
 .toc-header {
-  padding: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #ffffff;
-  border-bottom: 1px solid #f3f4f6;
-  position: sticky;
-  top: 0;
-  z-index: 2;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  position: relative;
 }
 
 .toc-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
   margin: 0;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
   letter-spacing: -0.01em;
-  background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .toc-toggle {
-  background: none;
-  border: none;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
   padding: 0;
+  border: none;
   border-radius: 6px;
-  color: #6b7280;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+  cursor: pointer;
   transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
 }
 
 .toc-toggle:hover {
-  background-color: #f3f4f6;
-  color: #4f46e5;
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
 }
 
 .toggle-icon {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   fill: currentColor;
   transition: transform 0.3s ease;
 }
@@ -488,15 +512,14 @@ onUnmounted(() => {
   transform: rotate(180deg);
 }
 
+/* 滚动区域 */
 .toc-scrollable {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
-  padding: 12px 0;
-  position: relative;
-  /* 自定义滚动条 */
+  padding: 10px 0;
   scrollbar-width: thin;
-  scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+  scrollbar-color: #e5e7eb transparent;
+  position: relative;
 }
 
 .toc-scrollable::-webkit-scrollbar {
@@ -508,191 +531,240 @@ onUnmounted(() => {
 }
 
 .toc-scrollable::-webkit-scrollbar-thumb {
-  background-color: rgba(99, 102, 241, 0.3);
-  border-radius: 4px;
+  background-color: #e5e7eb;
+  border-radius: 10px;
 }
 
 .toc-scrollable::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(99, 102, 241, 0.5);
+  background-color: #d1d5db;
 }
 
+/* 目录项容器 */
 .toc-items {
-  padding: 0 16px;
-}
-
-/* 目录项基础样式 - 统一颜色方案 */
-.toc-item {
-  display: flex;
-  align-items: center;
-  padding: 6px 8px;
-  margin-bottom: 4px;
-  text-decoration: none;
-  color: #374151;
-  border-radius: 6px;
-  font-size: 14px;
-  line-height: 1.4;
-  transition: all 0.2s ease;
   position: relative;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.toc-text {
+/* 目录项样式 */
+.toc-item {
+  display: block;
+  position: relative;
+  padding: 8px 18px;
+  margin: 2px 8px;
+  text-decoration: none;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: 8px;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.toc-indicator {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 0;
-  background-color: #6366f1;
-  transition: width 0.2s ease;
-  border-radius: 0 3px 3px 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
 }
 
 .toc-item:hover {
-  background-color: #f3f4f6;
-  color: #111827;
+  background-color: rgba(99, 102, 241, 0.05);
+  color: #6366F1;
+  transform: translateX(2px);
 }
 
-/* 积极改进选中项样式 */
+/* 活动项样式 - 全新设计 */
 .toc-item.active {
-  background-color: rgba(99, 102, 241, 0.12);
-  font-weight: 600;
-  color: #4338ca;
-  box-shadow: 0 1px 2px rgba(99, 102, 241, 0.1);
-}
-
-.toc-item.active .toc-indicator {
-  width: 4px;
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.6);
-}
-
-/* 目录级别样式 - 使用字体大小和字重来区分层次，而非颜色 */
-.toc-level-1 {
-  padding-left: 16px;
-  font-weight: 600;
-  font-size: 14.5px;
-}
-
-.toc-level-2 {
-  padding-left: 24px;
+  background: linear-gradient(
+      90deg,
+      rgba(99, 102, 241, 0.08) 0%,
+      rgba(139, 92, 246, 0.03) 100%
+  );
+  color: #6366F1;
   font-weight: 500;
-  font-size: 14px;
+  border-radius: 8px;
+  position: relative;
+  transform: translateX(3px) scale(1.01);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.toc-level-3 {
-  padding-left: 32px;
-  font-size: 13.5px;
-  font-weight: 400;
+/* 左侧装饰线 */
+.toc-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 60%;
+  width: 3px;
+  background: linear-gradient(to bottom, #6366F1, #8B5CF6);
+  border-radius: 0 4px 4px 0;
+  opacity: 0.9;
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.4);
+  transition: all 0.3s ease;
 }
 
-.toc-level-4 {
-  padding-left: 40px;
-  font-size: 13px;
-  font-weight: 400;
+/* 右侧微妙指示器 */
+.toc-item.active::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #6366F1;
+  opacity: 0.7;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+  transition: all 0.3s ease;
+}
+
+/* 激活项悬停效果 */
+.toc-item.active:hover {
+  background: linear-gradient(
+      90deg,
+      rgba(99, 102, 241, 0.12) 0%,
+      rgba(139, 92, 246, 0.05) 100%
+  );
+  transform: translateX(5px) scale(1.02);
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.08);
+}
+
+.toc-item.active:hover::before {
+  height: 70%;
+  opacity: 1;
+}
+
+.toc-item.active:hover::after {
+  transform: translateY(-50%) scale(1.2);
   opacity: 0.9;
 }
 
-.toc-level-5, .toc-level-6 {
-  padding-left: 48px;
-  font-size: 12.5px;
-  font-weight: 400;
-  opacity: 0.8;
+/* 不同级别的缩进样式 */
+.toc-level-1 {
+  font-weight: 600;
+  font-size: 15px;
+  padding-left: 18px;
+  color: #1f2937;
+  margin-top: 6px;
 }
 
+/* 针对一级标题的特殊样式 */
+.toc-level-1.active {
+  background: linear-gradient(
+      90deg,
+      rgba(79, 70, 229, 0.1) 0%,
+      rgba(139, 92, 246, 0.04) 100%
+  );
+  color: #4338ca;
+  box-shadow: 0 3px 12px rgba(79, 70, 229, 0.08);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.toc-level-1.active::before {
+  height: 70%;
+  width: 4px;
+  background: linear-gradient(to bottom, #4F46E5, #7C3AED);
+  box-shadow: 0 0 8px rgba(79, 70, 229, 0.5);
+}
+
+.toc-level-2 {
+  padding-left: 32px;
+}
+
+.toc-level-3 {
+  padding-left: 46px;
+  font-size: 13.5px;
+}
+
+/* 级别过渡样式 */
+.toc-level-2 + .toc-level-1,
+.toc-level-3 + .toc-level-1 {
+  margin-top: 14px;
+}
+
+/* 空状态 */
 .toc-empty {
-  padding: 20px 16px;
+  padding: 20px 15px;
   text-align: center;
   color: #9ca3af;
   font-style: italic;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
 }
 
-/* 折叠状态样式 */
+/* 折叠状态 */
 .toc-collapsed {
-  width: var(--toc-collapsed-width, 48px); /* 使用变量控制宽度 */
+  width: 50px;
 }
 
 .toc-collapsed .toc-wrapper {
-  border-radius: 8px 0 0 8px; /* 折叠时保持左侧圆角 */
+  border-radius: 12px 0 0 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
 }
 
 .toc-collapsed .toc-title,
 .toc-collapsed .toc-scrollable {
-  display: none; /* 折叠时隐藏内容 */
+  display: none;
 }
 
 .toc-collapsed .toc-header {
-  padding: 16px 8px;
+  padding: 14px;
   justify-content: center;
-  border-bottom: none;
+  border-radius: 0 0 0 10px;
 }
 
-.toc-collapsed .toc-toggle {
-  transform: rotate(180deg); /* 旋转折叠按钮 */
-}
-
-/* 暗色模式样式 - 现在基于 isDarkMode 属性而不是媒体查询 */
-/* 将原来的媒体查询样式转移到 .dark-mode 类选择器中 */
+/* 暗色模式 */
 .dark-mode .toc-wrapper {
   background-color: #1f2937;
-  border-color: #374151;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .dark-mode .toc-header {
-  background-color: #1f2937;
-  border-bottom-color: #374151;
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
 }
 
-.dark-mode .toc-title {
-  background: linear-gradient(90deg, #818cf8 0%, #a5b4fc 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-.dark-mode .toc-toggle {
-  color: #9ca3af;
-}
-
-.dark-mode .toc-toggle:hover {
-  background-color: #374151;
-  color: #a5b4fc;
-}
-
-/* 暗色模式下的目录项 */
 .dark-mode .toc-item {
   color: #d1d5db;
 }
 
 .dark-mode .toc-item:hover {
-  background-color: #374151;
-  color: #f9fafb;
-}
-
-/* 暗色模式下的活动目录项 */
-.dark-mode .toc-item.active {
-  background-color: rgba(129, 140, 248, 0.2);
+  background-color: rgba(165, 180, 252, 0.08);
   color: #a5b4fc;
-  box-shadow: 0 1px 3px rgba(129, 140, 248, 0.2);
 }
 
-.dark-mode .toc-item.active .toc-indicator {
-  background-color: #818cf8;
-  box-shadow: 0 0 8px rgba(129, 140, 248, 0.7);
+.dark-mode .toc-item.active {
+  background: linear-gradient(
+      90deg,
+      rgba(129, 140, 248, 0.15) 0%,
+      rgba(167, 139, 250, 0.06) 100%
+  );
+  color: #a5b4fc;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* 暗色模式下使用透明度来区分层级 */
-.dark-mode .toc-level-4 {
-  opacity: 0.9;
+.dark-mode .toc-item.active::before {
+  background: linear-gradient(to bottom, #818cf8, #a78bfa);
+  box-shadow: 0 0 8px rgba(129, 140, 248, 0.5);
 }
 
-.dark-mode .toc-level-5, .dark-mode .toc-level-6 {
-  opacity: 0.8;
+.dark-mode .toc-item.active::after {
+  background: #a5b4fc;
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.15);
+}
+
+.dark-mode .toc-level-1 {
+  color: #f3f4f6;
+}
+
+.dark-mode .toc-level-1.active {
+  background: linear-gradient(
+      90deg,
+      rgba(129, 140, 248, 0.18) 0%,
+      rgba(167, 139, 250, 0.08) 100%
+  );
+  color: #c7d2fe;
 }
 
 .dark-mode .toc-empty {
@@ -700,28 +772,41 @@ onUnmounted(() => {
 }
 
 .dark-mode .toc-scrollable::-webkit-scrollbar-thumb {
-  background-color: rgba(129, 140, 248, 0.3);
+  background-color: #4b5563;
 }
 
-.dark-mode .toc-scrollable::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(129, 140, 248, 0.5);
+.dark-mode .toc-collapsed .toc-wrapper {
+  background: rgba(31, 41, 55, 0.95);
 }
 
 /* 响应式调整 */
-@media (max-width: 1280px) {
+@media (max-width: 1366px) {
   .toc-container {
-    width: var(--toc-width, 240px);
-  }
-
-  .toc-collapsed {
-    width: var(--toc-collapsed-width, 44px); /* 适应较小屏幕 */
+    width: 220px;
   }
 }
 
 /* 移动设备适配 */
 @media (max-width: 768px) {
   .toc-container {
-    display: none;
+    width: 100%;
+    position: static;
+    margin-bottom: 20px;
+    filter: none;
+    right: 0;
+  }
+
+  .toc-wrapper {
+    border-radius: 10px;
+    max-height: 400px;
+  }
+
+  .toc-collapsed {
+    width: 100%;
+  }
+
+  .toc-collapsed .toc-wrapper {
+    border-radius: 10px;
   }
 }
 </style>
