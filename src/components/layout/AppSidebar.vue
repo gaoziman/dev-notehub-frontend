@@ -85,29 +85,6 @@ const menuOptions = [
         icon: () => h(IconFont, {type: 'icon-zhishitupu2'})
       },
       {
-        label: '视频管理',
-        key: 'video-parent',  // 将key改为video-parent，标识这是父级菜单
-        icon: () => h(IconFont, {type: 'icon-icon-zhishitupu'}),
-        // 添加子菜单配置
-        children: [
-          {
-            label: '视频主页',
-            key: 'video-home',
-            icon: () => h(IconFont, {type: 'icon-shipin1'})
-          },
-          {
-            label: '视频管理',
-            key: 'video-manage',
-            icon: () => h(IconFont, {type: 'icon-shipin-guanli'})
-          },
-          {
-            label: '分类管理',
-            key: 'video-categories',
-            icon: () => h(IconFont, {type: 'icon-fenlei'})
-          }
-        ]
-      },
-      {
         label: '工具合集',
         key: 'tools',
         icon: () => h(IconFont, {type: 'icon--'})
@@ -167,10 +144,6 @@ const handleMenuClick = (key) => {
 
   // 处理主导航项
   if (['dashboard', 'documentpage', 'bookmarkspage', 'code-snippets',  'tools', 'iconfont'].includes(key)) {
-    router.push({name: key});
-  }
-  // 处理视频相关导航
-  else if (['video-home', 'video-manage', 'video-categories'].includes(key)) {
     router.push({name: key});
   }
   // 处理知识分类项，跳转到文档页并传递分类参数

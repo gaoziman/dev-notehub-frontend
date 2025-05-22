@@ -1,987 +1,500 @@
 <template>
   <div class="document-page">
-    <!-- 页面标题区域 -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="icon-wrapper">
-          <icon-font type="icon-wendang1" :size="32" />
-        </div>
-        <div class="header-info">
-          <h1 class="page-title">文档管理</h1>
-          <p class="page-desc">管理和组织您的所有学习文档</p>
-        </div>
-      </div>
-      <div class="header-actions">
-        <n-button type="primary" size="medium" @click="navigateToUpload">
-          <template #icon>
-            <icon-font type="icon-shangchuan" />
-          </template>
-          上传文档
-        </n-button>
-        <n-button type="default" size="medium" @click="navigateToCreate">
-          <template #icon>
-            <icon-font type="icon-xinjian" />
-          </template>
-          新建文档
-        </n-button>
-        <n-button-group>
-          <n-tooltip trigger="hover" placement="top" :delay="500">
-            <template #trigger>
-              <n-button @click="refreshDocuments">
-                <template #icon>
-                  <icon-font type="icon-shuaxin" />
-                </template>
-              </n-button>
-            </template>
-            刷新
-          </n-tooltip>
-          <n-tooltip trigger="hover" placement="top" :delay="500">
-            <template #trigger>
-              <n-button @click="showBatchActions = !showBatchActions">
-                <template #icon>
-                  <icon-font type="icon-caozuo" />
-                </template>
-              </n-button>
-            </template>
-            批量操作
-          </n-tooltip>
-        </n-button-group>
-      </div>
-    </div>
-
-    <!-- 统计卡片区域 -->
-    <div class="stats-grid">
-      <!-- 文档总数卡片 -->
-      <div class="stat-card blue-card">
-        <div class="card-body">
-          <div class="card-title-row">
-            <h3 class="card-title">文档总数</h3>
-            <div class="badge positive">
-              <icon-font type="icon-shangsheng" :size="14" />
-              <span>{{ documentStats.totalChange }}</span>
-            </div>
-          </div>
-
-          <div class="card-value">{{ documentStats.total }}</div>
-
-          <div class="card-info-text">较上月增加</div>
-
-          <div class="icon-bg">
-            <icon-font type="icon-wendang1" :size="60" />
-          </div>
-        </div>
-
-        <div class="card-footer">
-          <div class="progress-label">
-            <span>上传进度</span>
-            <span>{{ Math.round((documentStats.total / 200) * 100) }}%</span>
-          </div>
-          <div class="progress-bar-wrapper">
-            <div class="progress-bar" :style="{ width: `${Math.min(Math.round((documentStats.total / 200) * 100), 100)}%` }"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 最近添加卡片 -->
-      <div class="stat-card green-card">
-        <div class="card-body">
-          <div class="card-title-row">
-            <h3 class="card-title">最近添加</h3>
-            <div class="badge positive">
-              <icon-font type="icon-shangsheng" :size="14" />
-              <span>{{ documentStats.recentChange }}</span>
-            </div>
-          </div>
-
-          <div class="card-value">{{ documentStats.recent }}</div>
-
-          <div class="card-info-text">本周新增文档</div>
-
-          <div class="icon-bg">
-            <icon-font type="icon-xinzeng" :size="60" />
-          </div>
-        </div>
-
-        <div class="card-footer">
-          <div class="tag-container">
-            <div class="tag blue-tag">Vue (5)</div>
-            <div class="tag teal-tag">React (3)</div>
-            <div class="tag amber-tag">其他 (16)</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 已阅文档卡片 -->
-      <div class="stat-card amber-card">
-        <div class="card-body">
-          <div class="card-title-row">
-            <h3 class="card-title">已阅文档</h3>
-            <div class="badge positive">
-              <icon-font type="icon-shangsheng" :size="14" />
-              <span>{{ documentStats.readChange }}</span>
-            </div>
-          </div>
-
-          <div class="card-value">{{ documentStats.read }}</div>
-
-          <div class="card-info-text">阅读完成率 {{ Math.round((documentStats.read / documentStats.total) * 100) }}%</div>
-
-          <div class="icon-bg">
-            <icon-font type="icon-yuedu" :size="60" />
-          </div>
-        </div>
-
-        <div class="card-footer">
-          <div class="progress-label">
-            <span>本月阅读目标</span>
-            <span>{{ documentStats.read }}/100</span>
-          </div>
-          <div class="progress-bar-wrapper">
-            <div class="progress-bar" :style="{ width: `${Math.min(documentStats.read, 100)}%` }"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 重要文档卡片 -->
-      <div class="stat-card red-card">
-        <div class="card-body">
-          <div class="card-title-row">
-            <h3 class="card-title">标记重要</h3>
-            <div class="badge positive">
-              <icon-font type="icon-shangsheng" :size="14" />
-              <span>{{ documentStats.importantChange }}</span>
-            </div>
-          </div>
-
-          <div class="card-value">{{ documentStats.important }}</div>
-
-          <div class="card-info-text">{{ Math.round((documentStats.important / documentStats.total) * 100) }}% 的文档被标记</div>
-
-          <div class="icon-bg">
-            <icon-font type="icon-zhongyao" :size="60" />
-          </div>
-        </div>
-
-        <div class="card-footer">
-          <button class="card-action-button" @click="viewImportantDocs">
-            <icon-font type="icon-filter" :size="14" />
-            <span>筛选重要文档</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 改进的搜索和筛选区域 -->
-    <div class="main-content-container">
-      <!-- 搜索组件 -->
-      <improved-document-search-bar
-          v-model:keyword="searchKeyword"
-          @search="handleSearch"
-          @advanced-search="handleAdvancedSearch"
-      />
-
-      <!-- 筛选组件 -->
-      <improved-document-filter-bar
-          v-model:categories="selectedCategories"
-          v-model:tags="selectedTags"
-          v-model:types="selectedTypes"
-          v-model:platforms="selectedPlatforms"
-          @filter="handleFilter"
-      />
-    </div>
-
-    <!-- 批量操作工具栏（条件渲染） -->
-    <div v-if="showBatchActions" class="batch-action-bar">
-      <div class="flex items-center">
-        <n-checkbox :checked="allSelected" :indeterminate="someSelected" @update:checked="toggleSelectAll">
-          全选
-        </n-checkbox>
-        <span class="ml-2 text-tertiary" v-if="selectedDocumentIds.length > 0">
-          已选择 {{ selectedDocumentIds.length }} 项
-        </span>
-      </div>
-      <div class="flex gap-2">
-        <n-button @click="batchAddTags">
-          <template #icon>
-            <icon-font type="icon-biaoqian" />
-          </template>
-          添加标签
-        </n-button>
-        <n-button @click="batchMove">
-          <template #icon>
-            <icon-font type="icon-yidong" />
-          </template>
-          移动分类
-        </n-button>
-        <n-button type="error" @click="confirmBatchDelete">
-          <template #icon>
-            <icon-font type="icon-shanchu" />
-          </template>
-          删除文档
-        </n-button>
-      </div>
-    </div>
-
-    <!-- 视图切换与排序 -->
-    <div class="view-controls">
-      <div class="flex items-center">
-        <document-view-switch v-model:viewMode="viewMode" />
-        <span class="ml-4 text-tertiary">共 {{ filteredDocuments.length }} 个文档</span>
-      </div>
-      <n-select
-          v-model:value="sortOption"
-          :options="sortOptions"
-          size="small"
-          placeholder="排序方式"
-          style="width: 150px"
-      />
-    </div>
-
-    <!-- 文档展示区域 -->
-    <document-card-view
-        v-if="viewMode === 'card'"
-        :documents="displayedDocuments"
-        :loading="loading"
-        :selected-ids="selectedDocumentIds"
-        @toggle-select="toggleSelectDocument"
-        @view="viewDocument"
-        @edit="editDocument"
-        @delete="confirmDeleteDocument"
+    <!-- 顶部统计卡片 - 使用重构后的组件 -->
+    <document-stats-cards
+        :total-count="statisticsData.totalCount"
+        :weekly-count="statisticsData.weeklyCount"
+        :monthly-count="statisticsData.monthlyCount"
+        :important-count="statisticsData.importantCount"
     />
 
-    <document-list-view
-        v-else
-        :documents="displayedDocuments"
+    <!-- 搜索和筛选区域 -->
+    <n-card class="search-filter-card mb-4" :bordered="false">
+      <document-search-form @search="handleSearch" />
+      <document-advanced-filter @filter="handleFilter" />
+    </n-card>
+
+    <!-- 文档列表工具栏 - 重新设计的部分 -->
+    <div class="document-toolbar mb-3">
+      <div class="toolbar-content">
+        <div class="left-section">
+          <div class="sort-control">
+            <span class="sort-label">排序方式</span>
+            <div class="sort-options">
+              <div
+                  v-for="option in sortOptionsGrouped.time"
+                  :key="option.key"
+                  class="sort-option"
+                  :class="{ active: currentSort === option.key }"
+                  @click="handleSort(option.key)"
+              >
+                <icon-font :type="getSortIcon(option.key)" :size="16" />
+                <span>{{ option.label }}</span>
+              </div>
+            </div>
+          </div>
+
+          <n-divider vertical class="divider" />
+
+          <div class="sort-control">
+            <div class="sort-options">
+              <div
+                  v-for="option in sortOptionsGrouped.title"
+                  :key="option.key"
+                  class="sort-option"
+                  :class="{ active: currentSort === option.key }"
+                  @click="handleSort(option.key)"
+              >
+                <icon-font :type="getSortIcon(option.key)" :size="16" />
+                <span>{{ option.label }}</span>
+              </div>
+            </div>
+          </div>
+
+          <n-tooltip trigger="hover" placement="bottom">
+            <template #trigger>
+              <n-button
+                  circle
+                  text
+                  class="view-mode-toggle ml-4"
+                  @click="toggleViewMode"
+              >
+                <icon-font :type="viewMode === 'grid' ? 'icon-grid' : 'icon-list'" :size="18" />
+              </n-button>
+            </template>
+            {{ viewMode === 'grid' ? '网格视图' : '列表视图' }}
+          </n-tooltip>
+        </div>
+
+        <div class="right-section">
+          <n-button type="primary" @click="handleAddDocument" class="add-button">
+            <template #icon>
+              <icon-font type="icon-add-file" />
+            </template>
+            新增文档
+          </n-button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文档卡片列表 -->
+    <document-card-list
+        :documents="filteredDocuments"
         :loading="loading"
-        :selected-ids="selectedDocumentIds"
-        @toggle-select="toggleSelectDocument"
-        @view="viewDocument"
-        @edit="editDocument"
-        @delete="confirmDeleteDocument"
+        :view-mode="viewMode"
+        @view="handleViewDocument"
+        @edit="handleEditDocument"
+        @delete="handleDeleteDocument"
+        @download="handleDownloadDocument"
+        @share="handleShareDocument"
+        @star="handleStarDocument"
     />
 
     <!-- 分页 -->
-    <div class="pagination-container">
+    <div class="pagination-container flex justify-center mt-4">
       <n-pagination
           v-model:page="currentPage"
           v-model:page-size="pageSize"
-          :item-count="filteredDocuments.length"
-          :page-sizes="[12, 24, 48, 96]"
+          :item-count="totalDocuments"
+          :page-sizes="[12, 24, 36, 48]"
           show-size-picker
-          show-quick-jumper
+          @update:page="handlePageChange"
+          @update:page-size="handlePageSizeChange"
       />
     </div>
-
-    <!-- 空状态展示 -->
-    <n-empty
-        v-if="!loading && filteredDocuments.length === 0"
-        description="暂无文档"
-        class="empty-state"
-    >
-      <template #extra>
-        <n-button type="primary" @click="navigateToUpload">上传文档</n-button>
-        <n-button class="ml-2" @click="navigateToCreate">新建文档</n-button>
-      </template>
-    </n-empty>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useMessage } from 'naive-ui'
-import DocumentViewSwitch from '@/components/document/DocumentViewSwitch.vue'
-import DocumentCardView from '@/components/document/DocumentCardView.vue'
-import DocumentListView from '@/components/document/DocumentListView.vue'
-import ImprovedDocumentSearchBar from '@/components/document/DocumentSearchBar.vue'
-import ImprovedDocumentFilterBar from '@/components/document/DocumentFilterBar.vue'
+import { ref, reactive, computed, onMounted} from 'vue'
+import {useRouter} from 'vue-router'
+import {useMessage} from 'naive-ui'
+import IconFont from '@/components/common/IconFont.vue'
+import DocumentStatsCards from '@/components/document/DocumentStatsCards.vue'
+import DocumentSearchForm from '@/components/document/DocumentSearchForm.vue'
+import DocumentAdvancedFilter from '@/components/document/DocumentAdvancedFilter.vue'
+import DocumentCardList from '@/components/document/DocumentCardList.vue'
 
+// 路由和消息
 const router = useRouter()
 const message = useMessage()
 
-// 统计数据
-const documentStats = ref({
-  total: 127,
-  totalChange: 12,
-  recent: 24,
-  recentChange: 8,
-  read: 76,
-  readChange: 5,
-  important: 43,
-  importantChange: 7
-})
+// 视图模式
+const viewMode = ref('grid') // grid或list
 
-// 视图控制状态
-const viewMode = ref('card') // 'card' 或 'list'
-const loading = ref(false)
-const currentPage = ref(1)
-const pageSize = ref(24)
-const showBatchActions = ref(false)
-
-// 筛选与搜索状态
-const searchKeyword = ref('')
-const searchDateRange = ref(null)
-const searchAdvancedOptions = ref(null)
-const selectedCategories = ref([])
-const selectedTags = ref([])
-const selectedTypes = ref([])
-const selectedPlatforms = ref([])
-
-// 排序选项
-const sortOption = ref('recent')
+// 排序选项配置
 const sortOptions = [
-  { label: '最近添加', value: 'recent' },
-  { label: '最近更新', value: 'updated' },
-  { label: '最多访问', value: 'visits' },
-  { label: '名称排序', value: 'name' },
-  { label: '创建时间', value: 'created' }
+  {
+    label: '最近创建',
+    key: 'createdTime-desc',
+    group: 'time'
+  },
+  {
+    label: '最早创建',
+    key: 'createdTime-asc',
+    group: 'time'
+  },
+  {
+    label: '最近更新',
+    key: 'updatedTime-desc',
+    group: 'time'
+  },
+  {
+    label: '最早更新',
+    key: 'updatedTime-asc',
+    group: 'time'
+  },
+  {
+    label: '按标题升序',
+    key: 'title-asc',
+    group: 'title'
+  },
+  {
+    label: '按标题降序',
+    key: 'title-desc',
+    group: 'title'
+  }
 ]
 
-// 选择状态
-const selectedDocumentIds = ref([])
-const allSelected = computed(() =>
-    selectedDocumentIds.value.length > 0 && selectedDocumentIds.value.length === displayedDocuments.value.length
-)
-const someSelected = computed(() =>
-    selectedDocumentIds.value.length > 0 && selectedDocumentIds.value.length < displayedDocuments.value.length
-)
-
-// 模拟文档数据
-const documents = ref([
-  {
-    id: 1,
-    title: 'Vue3 组合式API最佳实践',
-    description: '详细介绍Vue3组合式API的使用技巧与最佳实践方案。',
-    type: 'markdown',
-    category: 'Vue',
-    tags: ['前端', 'Vue3', '组合式API'],
-    platform: 'github',
-    createTime: '2024-02-15',
-    updateTime: '2024-04-20',
-    visits: 156,
-    starred: true
-  },
-  {
-    id: 2,
-    title: 'JavaScript异步编程精讲',
-    description: '从Promise到async/await，全面解析JavaScript异步编程范式。',
-    type: 'pdf',
-    category: 'JavaScript',
-    tags: ['前端', 'JavaScript', '异步编程'],
-    platform: 'juejin',
-    createTime: '2024-03-22',
-    updateTime: '2024-04-18',
-    visits: 189,
-    starred: false
-  },
-  {
-    id: 3,
-    title: 'TypeScript高级类型体操',
-    description: '深入TypeScript类型系统，实现复杂的类型推导和转换。',
-    type: 'markdown',
-    category: 'TypeScript',
-    tags: ['前端', 'TypeScript', '类型编程'],
-    platform: 'github',
-    createTime: '2024-04-10',
-    updateTime: '2024-05-01',
-    visits: 120,
-    starred: true
-  },
-  {
-    id: 4,
-    title: 'Vite构建优化与插件开发',
-    description: '探索Vite的构建优化技巧和自定义插件开发方法。',
-    type: 'markdown',
-    category: 'Tools',
-    tags: ['前端', 'Vite', '构建工具'],
-    platform: 'csdn',
-    createTime: '2024-03-05',
-    updateTime: '2024-04-15',
-    visits: 78,
-    starred: false
-  },
-  {
-    id: 5,
-    title: 'React性能优化实战指南',
-    description: '全面解析React应用性能优化的关键技术和实践方法。',
-    type: 'pdf',
-    category: 'React',
-    tags: ['前端', 'React', '性能优化'],
-    platform: 'juejin',
-    createTime: '2024-01-20',
-    updateTime: '2024-03-18',
-    visits: 210,
-    starred: true
-  },
-  {
-    id: 6,
-    title: 'Node.js微服务架构设计',
-    description: '基于Node.js实现可扩展的微服务架构设计与最佳实践。',
-    type: 'markdown',
-    category: 'Node.js',
-    tags: ['后端', 'Node.js', '微服务'],
-    platform: 'github',
-    createTime: '2024-02-28',
-    updateTime: '2024-04-25',
-    visits: 165,
-    starred: false
-  },
-  {
-    id: 7,
-    title: 'CSS动画与交互设计',
-    description: '探索现代CSS动画技术与交互设计模式。',
-    type: 'html',
-    category: 'CSS',
-    tags: ['前端', 'CSS', '动画'],
-    platform: 'juejin',
-    createTime: '2024-03-15',
-    updateTime: '2024-04-28',
-    visits: 145,
-    starred: true
-  },
-  {
-    id: 8,
-    title: 'Vue3状态管理进阶：Pinia详解',
-    description: '深入解析Pinia的设计理念、使用方法与最佳实践。',
-    type: 'markdown',
-    category: 'Vue',
-    tags: ['前端', 'Vue3', 'Pinia', '状态管理'],
-    platform: 'csdn',
-    createTime: '2024-04-05',
-    updateTime: '2024-05-02',
-    visits: 98,
-    starred: false
+// 分组排序选项，便于UI渲染
+const sortOptionsGrouped = computed(() => {
+  return {
+    time: sortOptions.filter(option => option.group === 'time'),
+    title: sortOptions.filter(option => option.group === 'title')
   }
-])
+})
 
-// 计算属性：过滤后的文档列表
+// 获取排序选项对应的图标
+const getSortIcon = (key) => {
+  if (key.includes('desc')) {
+    return key.includes('title') ? 'icon-sort-alpha-desc' : 'icon-sort-desc'
+  } else {
+    return key.includes('title') ? 'icon-sort-alpha-asc' : 'icon-sort-asc'
+  }
+}
+
+// 当前排序方式
+const currentSort = ref('createdTime-desc')
+const currentSortLabel = computed(() => {
+  const option = sortOptions.find(opt => opt.key === currentSort.value)
+  return option ? option.label : '最近创建'
+})
+
+// 分页数据
+const currentPage = ref(1)
+const pageSize = ref(12)
+const totalDocuments = ref(0)
+
+// 加载状态
+const loading = ref(false)
+
+// 统计数据 - 使用响应式对象管理统计信息
+const statisticsData = reactive({
+  totalCount: 0,
+  weeklyCount: 0,
+  monthlyCount: 0,
+  importantCount: 0
+})
+
+// 搜索条件
+const searchParams = reactive({
+  keyword: '',
+  dateRange: null,
+  categories: [],
+  tags: [],
+  types: []
+})
+
+// 文档数据存储
+const documents = ref([])
+
+// 计算筛选后的文档列表
 const filteredDocuments = computed(() => {
-  let result = [...documents.value]
+  // 在实际项目中，这里的筛选逻辑应该在后端处理
+  // 这里仅做前端展示的分页处理
+  return documents.value.slice(
+      (currentPage.value - 1) * pageSize.value,
+      currentPage.value * pageSize.value
+  )
+})
 
-  // 基本关键词搜索
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    result = result.filter(doc =>
-        doc.title.toLowerCase().includes(keyword) ||
-        doc.description.toLowerCase().includes(keyword) ||
-        doc.category.toLowerCase().includes(keyword) ||
-        doc.tags.some(tag => tag.toLowerCase().includes(keyword))
-    )
+// 获取文档数据的异步函数
+const fetchDocuments = async () => {
+  loading.value = true
+  try {
+    // 模拟API请求延迟
+    await new Promise(resolve => setTimeout(resolve, 800))
+
+    // 生成模拟文档数据
+    const mockDocuments = generateMockDocuments()
+
+    documents.value = mockDocuments
+    totalDocuments.value = mockDocuments.length
+
+    // 更新统计数据，这些计算在实际项目中应该由后端完成
+    updateStatisticsData(mockDocuments)
+
+  } catch (error) {
+    console.error('获取文档数据失败:', error)
+    message.error('获取文档数据失败')
+  } finally {
+    loading.value = false
   }
+}
 
-  // 高级搜索选项
-  if (searchAdvancedOptions.value) {
-    const options = searchAdvancedOptions.value
+// 生成模拟文档数据的辅助函数
+const generateMockDocuments = () => {
+  const mockDocuments = []
+  const docTypes = ['markdown', 'pdf', 'word', 'excel', 'ppt', 'text']
+  const categories = ['前端技术', '后端开发', '数据库', '人工智能', '运维部署', '设计资源']
+  const tags = ['Vue3', 'React', 'Java', 'Python', 'MySQL', 'Redis', 'Docker', 'Kubernetes', 'UI设计', '架构']
 
-    // 标题筛选
-    if (options.title) {
-      result = result.filter(doc =>
-          doc.title.toLowerCase().includes(options.title.toLowerCase())
-      )
-    }
+  for (let i = 1; i <= 100; i++) {
+    const randomType = docTypes[Math.floor(Math.random() * docTypes.length)]
+    const randomCategory = categories[Math.floor(Math.random() * categories.length)]
 
-    // 内容筛选
-    if (options.content) {
-      result = result.filter(doc =>
-          doc.description.toLowerCase().includes(options.content.toLowerCase())
-      )
-    }
-
-    // 作者筛选
-    if (options.authors && options.authors.length) {
-      // 模拟作者筛选逻辑
-      if (options.authors.includes('me')) {
-        // 筛选自己创建的文档（示例逻辑）
-        result = result.filter(doc => doc.platform !== 'system')
+    // 随机选择1-3个标签
+    const docTags = []
+    const tagCount = Math.floor(Math.random() * 3) + 1
+    for (let j = 0; j < tagCount; j++) {
+      const randomTag = tags[Math.floor(Math.random() * tags.length)]
+      if (!docTags.includes(randomTag)) {
+        docTags.push(randomTag)
       }
     }
 
-    // 最小阅读量筛选
-    if (options.minVisits !== null && options.minVisits !== undefined) {
-      result = result.filter(doc => doc.visits >= options.minVisits)
-    }
-
-    // 日期范围筛选
-    if (options.dateRange && options.dateRange.length === 2) {
-      const startDate = new Date(options.dateRange[0])
-      const endDate = new Date(options.dateRange[1])
-
-      result = result.filter(doc => {
-        const createDate = new Date(doc.createTime)
-        return createDate >= startDate && createDate <= endDate
-      })
-    }
+    mockDocuments.push({
+      id: i,
+      title: `文档示例 ${i} - ${randomCategory}指南`,
+      description: `这是一份关于${randomCategory}的详细文档，包含了完整的示例代码和说明，适合初学者和有经验的开发者参考。`,
+      category: randomCategory,
+      tags: docTags,
+      type: randomType,
+      fileSize: Math.floor(Math.random() * 10000) + 100, // kb
+      createdTime: new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 3600 * 1000),
+      updatedTime: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 3600 * 1000),
+      isImportant: Math.random() > 0.8,
+      viewCount: Math.floor(Math.random() * 1000)
+    })
   }
 
-  // 分类筛选
-  if (selectedCategories.value.length > 0) {
-    result = result.filter(doc => selectedCategories.value.includes(doc.category))
-  }
-
-  // 标签筛选
-  if (selectedTags.value.length > 0) {
-    result = result.filter(doc =>
-        selectedTags.value.some(tag => doc.tags.includes(tag))
-    )
-  }
-
-  // 类型筛选
-  if (selectedTypes.value.length > 0) {
-    result = result.filter(doc => selectedTypes.value.includes(doc.type))
-  }
-
-  // 平台筛选
-  if (selectedPlatforms.value.length > 0) {
-    result = result.filter(doc => selectedPlatforms.value.includes(doc.platform))
-  }
-
-  return result
-})
-
-// 计算属性：当前页显示的文档
-const displayedDocuments = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-
-  // 根据排序选项排序
-  let sorted = [...filteredDocuments.value]
-  switch(sortOption.value) {
-    case 'recent':
-      sorted.sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
-      break
-    case 'updated':
-      sorted.sort((a, b) => new Date(b.updateTime) - new Date(a.updateTime))
-      break
-    case 'visits':
-      sorted.sort((a, b) => b.visits - a.visits)
-      break
-    case 'name':
-      sorted.sort((a, b) => a.title.localeCompare(b.title))
-      break
-    case 'created':
-      sorted.sort((a, b) => new Date(a.createTime) - new Date(b.createTime))
-      break
-  }
-
-  return sorted.slice(start, end)
-})
-
-// 导航方法
-const navigateToUpload = () => {
-  router.push('/document/upload')
+  return mockDocuments
 }
 
-const navigateToCreate = () => {
+// 更新统计数据的辅助函数
+const updateStatisticsData = (docs) => {
+  const now = new Date()
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000)
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000)
+
+  statisticsData.totalCount = docs.length
+  statisticsData.weeklyCount = docs.filter(doc => doc.createdTime >= weekAgo).length
+  statisticsData.monthlyCount = docs.filter(doc => doc.createdTime >= monthAgo).length
+  statisticsData.importantCount = docs.filter(doc => doc.isImportant).length
+}
+
+// 组件挂载时初始化数据
+onMounted(() => {
+  fetchDocuments()
+})
+
+// 切换视图模式
+const toggleViewMode = () => {
+  viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
+}
+
+// 事件处理函数
+const handleSearch = (params) => {
+  // 更新搜索参数
+  searchParams.keyword = params.keyword
+  searchParams.dateRange = params.dateRange
+  currentPage.value = 1
+  // 重新获取数据
+  fetchDocuments()
+}
+
+const handleFilter = (filters) => {
+  // 更新筛选参数
+  searchParams.categories = filters.categories
+  searchParams.tags = filters.tags
+  searchParams.types = filters.types
+  currentPage.value = 1
+  // 重新获取数据
+  fetchDocuments()
+}
+
+const handleSort = (key) => {
+  currentSort.value = key
+  // 重新获取数据
+  fetchDocuments()
+}
+
+const handlePageChange = (page) => {
+  currentPage.value = page
+}
+
+const handlePageSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+}
+
+const handleAddDocument = () => {
   router.push('/document/create')
 }
 
-// 方法：刷新文档列表
-const refreshDocuments = () => {
-  loading.value = true
-
-  // 模拟API请求
-  setTimeout(() => {
-    loading.value = false
-    message.success('文档列表已刷新')
-  }, 800)
-}
-
-// 方法：处理基本搜索
-const handleSearch = (searchData) => {
-  searchKeyword.value = searchData.keyword
-  searchDateRange.value = searchData.dateRange
-  searchAdvancedOptions.value = null
-  currentPage.value = 1
-  message.info(`正在搜索：${searchKeyword.value}`)
-}
-
-// 方法：处理高级搜索
-const handleAdvancedSearch = (options) => {
-  searchKeyword.value = options.keyword
-  searchAdvancedOptions.value = options
-  currentPage.value = 1
-  message.info('已应用高级搜索条件')
-}
-
-// 方法：处理筛选
-const handleFilter = () => {
-  currentPage.value = 1
-  message.info('筛选条件已应用')
-}
-
-// 方法：切换选择所有文档
-const toggleSelectAll = (checked) => {
-  if (checked) {
-    selectedDocumentIds.value = displayedDocuments.value.map(doc => doc.id)
-  } else {
-    selectedDocumentIds.value = []
-  }
-}
-
-// 方法：切换选择单个文档
-const toggleSelectDocument = (id) => {
-  const index = selectedDocumentIds.value.indexOf(id)
-  if (index === -1) {
-    selectedDocumentIds.value.push(id)
-  } else {
-    selectedDocumentIds.value.splice(index, 1)
-  }
-}
-
-// 方法：查看文档
-const viewDocument = (id) => {
+const handleViewDocument = (id) => {
   router.push(`/document/view/${id}`)
 }
 
-// 方法：编辑文档
-const editDocument = (id) => {
+const handleEditDocument = (id) => {
   router.push(`/document/edit/${id}`)
 }
 
-// 方法：确认删除文档
-const confirmDeleteDocument = (id) => {
-  // 实现确认删除逻辑
-  message.warning(`确认删除文档ID: ${id}`)
+const handleDeleteDocument = (id) => {
+  // 实际项目中这里应该调用API进行删除
+  message.success(`删除文档 ${id} 成功`)
+  documents.value = documents.value.filter(doc => doc.id !== id)
+  totalDocuments.value--
+  // 重新计算统计数据
+  updateStatisticsData(documents.value)
 }
 
-// 方法：批量添加标签
-const batchAddTags = () => {
-  message.info(`为${selectedDocumentIds.value.length}个文档添加标签`)
+const handleDownloadDocument = (id) => {
+  message.success(`文档 ${id} 已开始下载`)
 }
 
-// 方法：批量移动文档
-const batchMove = () => {
-  message.info(`移动${selectedDocumentIds.value.length}个文档`)
+const handleShareDocument = (id) => {
+  message.success(`文档 ${id} 分享链接已复制到剪贴板`)
 }
 
-// 方法：确认批量删除
-const confirmBatchDelete = () => {
-  message.warning(`确认删除${selectedDocumentIds.value.length}个文档`)
+const handleStarDocument = (id, isStarred) => {
+  // 更新文档星标状态
+  const doc = documents.value.find(d => d.id === id)
+  if (doc) {
+    doc.isImportant = isStarred
+    message.success(`${isStarred ? '标记' : '取消标记'}文档为重要文档`)
+    // 重新计算统计数据
+    updateStatisticsData(documents.value)
+  }
 }
-
-// 方法：查看重要文档
-const viewImportantDocs = () => {
-  // 应用"重要"标签筛选
-  selectedTags.value = ['重要']
-  handleFilter()
-  message.info('已筛选重要文档')
-}
-
-// 生命周期钩子
-onMounted(() => {
-  refreshDocuments()
-})
 </script>
 
 <style scoped>
 .document-page {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
   padding: var(--content-padding);
 }
 
-.page-header {
+.search-filter-card {
+  background-color: var(--card-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-1);
+  transition: box-shadow 0.3s ease;
+}
+
+.search-filter-card:hover {
+  box-shadow: var(--box-shadow-2);
+}
+
+/* 工具栏样式保持原有设计 */
+.document-toolbar {
+  background-color: var(--card-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-1);
+  overflow: hidden;
+  position: relative;
+}
+
+.toolbar-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--divider-color);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.icon-wrapper {
-  width: 56px;
+  padding: 0 4px;
   height: 56px;
-  background-color: var(--primary-color-suppl);
-  border-radius: 12px;
+}
+
+.left-section {
   display: flex;
   align-items: center;
-  justify-content: center;
+  height: 100%;
+}
+
+.sort-control {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 100%;
+}
+
+.sort-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color-2);
+  margin-right: 12px;
+}
+
+.sort-options {
+  display: flex;
+  gap: 2px;
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  color: var(--text-color-2);
+}
+
+.sort-option:hover {
+  background-color: rgba(99, 102, 241, 0.08);
   color: var(--primary-color);
 }
 
-.header-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-color-base);
-  line-height: 1.3;
-}
-
-.page-desc {
-  font-size: 14px;
-  color: var(--text-color-tertiary);
-  margin: 4px 0 0 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-
-/* 统计卡片样式 */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-}
-
-.stat-card {
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  position: relative;
-  height: 220px;
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-}
-
-.card-body {
-  flex: 1;
-  padding: 20px;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.card-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  position: relative;
-  z-index: 2;
-}
-
-.card-title {
-  font-size: 16px;
+.sort-option.active {
+  background-color: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color);
   font-weight: 500;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.95);
 }
 
-.badge {
+.sort-option span {
+  margin-left: 6px;
+}
+
+.divider {
+  height: 24px;
+  margin: 0 4px;
+}
+
+.view-mode-toggle {
+  margin-left: 12px;
+  color: var(--text-color-2);
+  transition: color 0.2s ease;
+}
+
+.view-mode-toggle:hover {
+  color: var(--primary-color);
+}
+
+.right-section {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+  padding-right: 12px;
 }
 
-.positive {
-  background-color: rgba(255, 255, 255, 0.25);
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.negative {
-  background-color: rgba(255, 255, 255, 0.25);
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.card-value {
-  font-size: 42px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  color: white;
-  position: relative;
-  z-index: 2;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.card-info-text {
-  font-size: 14px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.85);
-  position: relative;
-  z-index: 2;
-}
-
-.icon-bg {
-  position: absolute;
-  right: -10px;
-  bottom: -10px;
-  opacity: 0.15;
-  transform: rotate(-5deg);
-  z-index: 1;
-}
-
-.card-footer {
-  padding: 12px 20px;
-  background-color: rgba(0, 0, 0, 0.15);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.progress-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 6px;
-}
-
-.progress-bar-wrapper {
-  height: 8px;
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-bar {
-  height: 100%;
-  border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.9);
-  transition: width 0.3s ease;
-}
-
-.tag-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tag {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
+.add-button {
+  padding: 0 20px;
+  height: 36px;
+  border-radius: 18px;
   font-weight: 500;
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.2);
 }
 
-.blue-tag {
-  background-color: rgba(99, 102, 241, 0.8);
-}
-
-.teal-tag {
-  background-color: rgba(20, 184, 166, 0.8);
-}
-
-.amber-tag {
-  background-color: rgba(251, 191, 36, 0.8);
-}
-
-.card-action-button {
-  width: 100%;
-  padding: 8px;
-  background-color: rgba(255, 255, 255, 0.2);
-  border: none;
-  border-radius: 8px;
-  color: white;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: background-color 0.2s ease;
-}
-
-.card-action-button:hover {
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
-/* 卡片颜色方案 */
-.blue-card {
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-}
-
-.green-card {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-}
-
-.amber-card {
-  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
-}
-
-.red-card {
-  background: linear-gradient(135deg, #be123c 0%, #e11d48 100%);
-}
-
-/* 主要内容容器 */
-.main-content-container {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-}
-
-/* 批量操作栏 */
-.batch-action-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: var(--card-color);
-  padding: 12px 16px;
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow-1);
-}
-
-/* 视图控制 */
-.view-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-/* 分页容器 */
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 24px;
-}
-
-/* 空状态 */
-.empty-state {
-  margin: 48px 0;
-}
-
-/* 响应式调整 */
-@media (max-width: 1200px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
-}
-
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .header-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .stat-card {
-    height: 200px;
-  }
+.add-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.25);
 }
 </style>
