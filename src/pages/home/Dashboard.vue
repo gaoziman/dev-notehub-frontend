@@ -1,888 +1,937 @@
 <template>
   <div class="dashboard-container">
-    <!-- 欢迎区域 - 更现代化设计 -->
-    <div class="welcome-section">
-      <div class="welcome-content">
-        <n-gradient-text :size="28" type="primary" class="welcome-title">
-          欢迎回来，{{ userStore.userInfo.name || '用户' }}
-        </n-gradient-text>
-        <p class="welcome-subtitle">{{ getGreeting() }} 今天是 {{ formattedDate }}</p>
+    <!-- 欢迎横幅区域 -->
+    <div class="welcome-banner">
+      <div class="banner-content">
+        <div class="welcome-text">
+          <h1 class="welcome-title">
+            <icon-font type="icon-zhishiku1" :size="28" class="title-icon" />
+            <span class="welcome-highlight">欢迎回来，{{ userName }}</span>
+          </h1>
+          <div class="datetime-info">
+            <div class="time-display">{{ currentDateTime }}</div>
+            <div class="motivation-text">让我们开始高效的知识管理之旅</div>
+          </div>
+        </div>
       </div>
-      <div class="global-search-wrapper">
-        <div class="search-input-wrapper" :class="{ 'is-focused': isSearchFocused }">
-          <icon-font type="icon-search" :size="20" class="search-icon" />
-          <input
-              ref="searchInputRef"
-              class="global-search-input"
-              placeholder="搜索文档、书签、代码片段..."
-              v-model="searchKeyword"
-              @focus="isSearchFocused = true"
-              @blur="isSearchFocused = false"
-              @keyup.enter="performSearch"
-          />
-          <n-button
-              v-if="searchKeyword"
-              quaternary
-              circle
-              size="small"
-              class="clear-button"
-              @click="searchKeyword = ''"
-          >
-            <template #icon>
-              <icon-font type="icon-close" :size="14" />
-            </template>
-          </n-button>
+
+      <!-- 简化的装饰元素 -->
+      <div class="banner-decoration">
+        <div class="decoration-blob blob-1"></div>
+        <div class="decoration-blob blob-2"></div>
+        <div class="decoration-blob blob-3"></div>
+        <div class="floating-icon icon-1">
+          <icon-font type="icon-book" :size="16" class="floating-element" />
+        </div>
+        <div class="floating-icon icon-2">
+          <icon-font type="icon-bulb" :size="16" class="floating-element" />
+        </div>
+        <div class="floating-icon icon-3">
+          <icon-font type="icon-star" :size="14" class="floating-element" />
         </div>
       </div>
     </div>
 
-    <!-- 统计卡片 - 更精美的卡片设计 -->
-    <div class="stat-cards-container">
-      <n-card class="stat-card" :class="{'hovering': hoveredCard === 'documents'}"
-              @mouseenter="hoveredCard = 'documents'" @mouseleave="hoveredCard = null"
-              hoverable>
-        <div class="stat-card-header">
-          <div class="stat-icon-wrapper primary-bg">
-            <icon-font type="icon-document" :size="24" color="white" />
-          </div>
-          <div class="stat-actions">
-            <n-tooltip trigger="hover" placement="top">
-              <template #trigger>
-                <n-button quaternary circle size="small" @click="navigateTo('/dashboard/documents')">
-                  <template #icon>
-                    <icon-font type="icon-arrow-right" :size="16" />
-                  </template>
-                </n-button>
-              </template>
-              查看全部文档
-            </n-tooltip>
-          </div>
-        </div>
-        <div class="stat-card-body">
-          <div class="stat-value">{{ stats.documents }}</div>
-          <div class="stat-label">文档总数</div>
-        </div>
-        <div class="stat-card-footer">
-          <div class="stat-trend">
-            <icon-font type="icon-rise" :size="16" color="var(--success-color)" />
-            <span class="trend-value">{{ stats.recentDocuments }} 本周新增</span>
-          </div>
-          <n-progress type="line" :percentage="stats.documentProgress" :show-indicator="false"
-                      :height="6" color="var(--primary-color)" rail-color="rgba(99, 102, 241, 0.1)" />
-        </div>
-      </n-card>
-
-      <n-card class="stat-card" :class="{'hovering': hoveredCard === 'bookmarks'}"
-              @mouseenter="hoveredCard = 'bookmarks'" @mouseleave="hoveredCard = null"
-              hoverable>
-        <div class="stat-card-header">
-          <div class="stat-icon-wrapper success-bg">
-            <icon-font type="icon-bookmark" :size="24" color="white" />
-          </div>
-          <div class="stat-actions">
-            <n-tooltip trigger="hover" placement="top">
-              <template #trigger>
-                <n-button quaternary circle size="small" @click="navigateTo('/dashboard/bookmarks')">
-                  <template #icon>
-                    <icon-font type="icon-arrow-right" :size="16" />
-                  </template>
-                </n-button>
-              </template>
-              查看全部书签
-            </n-tooltip>
-          </div>
-        </div>
-        <div class="stat-card-body">
-          <div class="stat-value">{{ stats.bookmarks }}</div>
-          <div class="stat-label">书签总数</div>
-        </div>
-        <div class="stat-card-footer">
-          <div class="stat-trend">
-            <icon-font type="icon-rise" :size="16" color="var(--success-color)" />
-            <span class="trend-value">{{ stats.recentBookmarks }} 本周新增</span>
-          </div>
-          <n-progress type="line" :percentage="stats.bookmarkProgress" :show-indicator="false"
-                      :height="6" color="var(--success-color)" rail-color="rgba(24, 160, 88, 0.1)" />
-        </div>
-      </n-card>
-
-      <n-card class="stat-card" :class="{'hovering': hoveredCard === 'codeSnippets'}"
-              @mouseenter="hoveredCard = 'codeSnippets'" @mouseleave="hoveredCard = null"
-              hoverable>
-        <div class="stat-card-header">
-          <div class="stat-icon-wrapper warning-bg">
-            <icon-font type="icon-code" :size="24" color="white" />
-          </div>
-          <div class="stat-actions">
-            <n-tooltip trigger="hover" placement="top">
-              <template #trigger>
-                <n-button quaternary circle size="small" @click="navigateTo('/dashboard/code-snippets')">
-                  <template #icon>
-                    <icon-font type="icon-arrow-right" :size="16" />
-                  </template>
-                </n-button>
-              </template>
-              查看全部代码片段
-            </n-tooltip>
-          </div>
-        </div>
-        <div class="stat-card-body">
-          <div class="stat-value">{{ stats.codeSnippets }}</div>
-          <div class="stat-label">代码片段</div>
-        </div>
-        <div class="stat-card-footer">
-          <div class="stat-trend">
-            <icon-font type="icon-rise" :size="16" color="var(--success-color)" />
-            <span class="trend-value">{{ stats.recentCodeSnippets }} 本周新增</span>
-          </div>
-          <n-progress type="line" :percentage="stats.codeSnippetProgress" :show-indicator="false"
-                      :height="6" color="var(--warning-color)" rail-color="rgba(240, 160, 32, 0.1)" />
-        </div>
-      </n-card>
-
-      <n-card class="stat-card" :class="{'hovering': hoveredCard === 'videos'}"
-              @mouseenter="hoveredCard = 'videos'" @mouseleave="hoveredCard = null"
-              hoverable>
-        <div class="stat-card-header">
-          <div class="stat-icon-wrapper info-bg">
-            <icon-font type="icon-video" :size="24" color="white" />
-          </div>
-          <div class="stat-actions">
-            <n-tooltip trigger="hover" placement="top">
-              <template #trigger>
-                <n-button quaternary circle size="small" @click="navigateTo('/video/learning')">
-                  <template #icon>
-                    <icon-font type="icon-arrow-right" :size="16" />
-                  </template>
-                </n-button>
-              </template>
-              查看全部视频
-            </n-tooltip>
-          </div>
-        </div>
-        <div class="stat-card-body">
-          <div class="stat-value">{{ stats.videos }}</div>
-          <div class="stat-label">学习视频</div>
-        </div>
-        <div class="stat-card-footer">
-          <div class="stat-trend">
-            <icon-font type="icon-play-circle" :size="16" color="var(--info-color)" />
-            <span class="trend-value">{{ stats.watchedVideos }} 已观看</span>
-          </div>
-          <n-progress type="line" :percentage="stats.videoProgress" :show-indicator="false"
-                      :height="6" color="var(--info-color)" rail-color="rgba(32, 128, 240, 0.1)" />
-        </div>
-      </n-card>
+    <!-- 核心统计卡片 -->
+    <div class="stats-section">
+      <stats-cards
+          :cards-data="overallStatsData"
+          :columns="4"
+          :show-waveform="true"
+      />
     </div>
 
-    <!-- 快速访问按钮组 -->
-    <div class="quick-action-buttons">
-      <n-button
-          v-for="(item, index) in actionButtons"
-          :key="index"
-          class="quick-action-button"
-          :type="item.type"
-          size="large"
-          @click="navigateTo(item.route)"
-      >
-        <template #icon>
-          <icon-font :type="item.icon" :size="20" />
-        </template>
-        {{ item.label }}
-      </n-button>
+    <!-- 主要内容区域 - 重新设计为单列布局 -->
+    <div class="main-content-wrapper">
+      <!-- 快速操作区域 -->
+      <div class="quick-actions-section">
+        <quick-actions
+            :actions="quickActionItems"
+            @action="handleQuickAction"
+        />
+      </div>
+
+      <!-- 数据概览图表 - 重新设计 -->
+      <div class="charts-section">
+        <data-overview-charts />
+      </div>
     </div>
 
-    <!-- 主体内容区域 - 双列布局 -->
-    <div class="main-content-container">
-      <!-- 左侧列 -->
-      <div class="content-column">
-        <!-- 最近添加的书签模块 -->
-        <n-card title="最近添加的书签" class="content-card bookmarks-card" hoverable>
-          <template #header-extra>
-            <n-button text type="primary" size="small" @click="navigateTo('/dashboard/bookmarks')">
+    <!-- 底部功能区域 - 重新设计为二列布局 -->
+    <div class="bottom-section">
+      <div class="bottom-cards-grid">
+        <!-- 最近收藏的书签 -->
+        <div class="recent-bookmarks-card">
+          <div class="card-header">
+            <icon-font type="icon-bookmark" :size="24" class="header-icon" />
+            <h3 class="card-title">最近收藏的书签</h3>
+            <n-button text @click="navigateToBookmarks">
               查看全部
               <template #icon>
                 <icon-font type="icon-arrow-right" :size="14" />
               </template>
             </n-button>
-          </template>
-
-          <div class="bookmarks-list">
-            <div v-for="(bookmark, index) in recentBookmarks" :key="index"
-                 class="bookmark-item" @click="openBookmark(bookmark.url)">
-              <div class="bookmark-icon" :style="{ backgroundColor: bookmark.color }">
-                <icon-font :type="bookmark.icon || 'icon-link'" :size="18" color="white" />
+          </div>
+          <div class="recent-items-list">
+            <div
+                v-for="bookmark in recentBookmarks"
+                :key="bookmark.id"
+                class="bookmark-item"
+                @click="openBookmark(bookmark)"
+            >
+              <div class="bookmark-favicon">
+                <img :src="bookmark.favicon" :alt="bookmark.platform" />
               </div>
               <div class="bookmark-content">
-                <div class="bookmark-title">{{ bookmark.title }}</div>
-                <div class="bookmark-url">{{ formatUrl(bookmark.url) }}</div>
-              </div>
-              <div class="bookmark-meta">
-                <div class="bookmark-date">{{ bookmark.addedDate }}</div>
-                <div class="bookmark-actions">
-                  <n-tooltip placement="top" trigger="hover">
-                    <template #trigger>
-                      <n-button quaternary circle size="small">
-                        <template #icon>
-                          <icon-font type="icon-share" :size="16" />
-                        </template>
-                      </n-button>
-                    </template>
-                    分享
-                  </n-tooltip>
-                  <n-tooltip placement="top" trigger="hover">
-                    <template #trigger>
-                      <n-button quaternary circle size="small">
-                        <template #icon>
-                          <icon-font type="icon-edit" :size="16" />
-                        </template>
-                      </n-button>
-                    </template>
-                    编辑
-                  </n-tooltip>
-                </div>
-              </div>
-            </div>
-
-            <div class="bookmark-add-btn">
-              <n-button block dashed @click="navigateTo('/dashboard/bookmarks')">
-                <template #icon>
-                  <icon-font type="icon-add" :size="18" />
-                </template>
-                添加新书签
-              </n-button>
-            </div>
-          </div>
-        </n-card>
-      </div>
-
-      <!-- 右侧列 -->
-      <div class="content-column">
-        <!-- 待办事项模块 -->
-        <n-card title="待办事项" class="content-card todo-card" hoverable>
-          <template #header-extra>
-            <n-button circle text size="small" @click="showAddTodoModal = true">
-              <template #icon>
-                <icon-font type="icon-add" :size="18" />
-              </template>
-            </n-button>
-          </template>
-
-          <div class="todo-list">
-            <n-empty v-if="todos.length === 0" description="暂无待办事项" size="small">
-              <template #extra>
-                <n-button size="small" @click="showAddTodoModal = true">添加待办</n-button>
-              </template>
-            </n-empty>
-
-            <transition-group name="list" tag="div" class="todo-items-container">
-              <div v-for="(todo, index) in todos" :key="todo.id" class="todo-item"
-                   :class="{ 'completed': completedTodos.includes(todo.id) }">
-                <div class="todo-checkbox">
-                  <n-checkbox :value="completedTodos.includes(todo.id)"
-                              @update:value="toggleTodoComplete(todo.id)" />
-                </div>
-                <div class="todo-content">
-                  <div class="todo-text" :class="{ 'line-through': completedTodos.includes(todo.id) }">
-                    {{ todo.content }}
-                  </div>
-                  <div class="todo-meta">
-                    <n-tag :type="getPriorityType(todo.priority)" size="small" round>
-                      {{ getPriorityLabel(todo.priority) }}
-                    </n-tag>
-                    <span class="todo-due" :class="isDueNear(todo.dueDate) ? 'due-near' : ''">
-                      {{ formatDueDate(todo.dueDate) }}
+                <h4 class="bookmark-title">{{ bookmark.title }}</h4>
+                <p class="bookmark-description">{{ bookmark.description }}</p>
+                <div class="bookmark-meta">
+                  <span class="bookmark-platform">{{ bookmark.platform }}</span>
+                  <span class="bookmark-time">{{ formatRelativeTime(bookmark.createdAt) }}</span>
+                  <div class="bookmark-tags">
+                    <span
+                        v-for="tag in bookmark.tags.slice(0, 2)"
+                        :key="tag"
+                        class="bookmark-tag"
+                    >
+                      {{ tag }}
                     </span>
                   </div>
                 </div>
-                <div class="todo-actions">
-                  <n-button quaternary circle size="small" @click="removeTodo(todo.id)">
-                    <template #icon>
-                      <icon-font type="icon-delete" :size="16" />
-                    </template>
-                  </n-button>
+              </div>
+              <div class="bookmark-actions">
+                <n-button quaternary circle size="small" @click.stop="favoriteBookmark(bookmark)">
+                  <icon-font type="icon-heart" :size="14" />
+                </n-button>
+                <n-button quaternary circle size="small" @click.stop="shareBookmark(bookmark)">
+                  <icon-font type="icon-share" :size="14" />
+                </n-button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 最近添加的文档 -->
+        <div class="recent-documents-card">
+          <div class="card-header">
+            <icon-font type="icon-file-text" :size="24" class="header-icon" />
+            <h3 class="card-title">最近添加的文档</h3>
+            <n-button text @click="navigateToDocuments">
+              查看全部
+              <template #icon>
+                <icon-font type="icon-arrow-right" :size="14" />
+              </template>
+            </n-button>
+          </div>
+          <div class="recent-items-list">
+            <div
+                v-for="document in recentDocuments"
+                :key="document.id"
+                class="document-item"
+                @click="openDocument(document)"
+            >
+              <div class="document-icon">
+                <icon-font :type="getDocumentIcon(document.type)" :size="24" />
+              </div>
+              <div class="document-content">
+                <h4 class="document-title">{{ document.title }}</h4>
+                <p class="document-description">{{ document.description }}</p>
+                <div class="document-meta">
+                  <span class="document-category">{{ document.category }}</span>
+                  <span class="document-time">{{ formatRelativeTime(document.createdAt) }}</span>
+                  <span class="document-size">{{ formatFileSize(document.size) }}</span>
                 </div>
               </div>
-            </transition-group>
+              <div class="document-actions">
+                <n-button quaternary circle size="small" @click.stop="editDocument(document)">
+                  <icon-font type="icon-edit" :size="14" />
+                </n-button>
+                <n-button quaternary circle size="small" @click.stop="downloadDocument(document)">
+                  <icon-font type="icon-download" :size="14" />
+                </n-button>
+              </div>
+            </div>
           </div>
-        </n-card>
+        </div>
       </div>
     </div>
 
-    <!-- 热门标签模块 -->
-    <n-card title="热门标签" class="content-card tags-card" hoverable>
-      <div class="tags-cloud">
-        <n-tag
-            v-for="tag in popularTags"
-            :key="tag.id"
-            :type="tag.type"
-            :color="tag.color"
-            size="medium"
-            round
-            :style="{ fontSize: getTagSize(tag.count) }"
-            class="tag-item"
-            @click="navigateWithTag(tag.name)"
-        >
-          {{ tag.name }}
-          <template #avatar v-if="tag.icon">
-            <icon-font :type="tag.icon" :size="14" />
-          </template>
-        </n-tag>
-      </div>
-    </n-card>
-
-    <!-- 添加待办事项对话框 -->
-    <n-modal
-        v-model:show="showAddTodoModal"
-        preset="card"
-        title="添加待办事项"
-        class="todo-modal"
-        :style="{ width: '400px' }"
-    >
-      <n-form ref="todoFormRef" :model="newTodo">
-        <n-form-item label="内容" required>
-          <n-input v-model:value="newTodo.content" placeholder="请输入待办事项内容" />
+    <!-- 添加书签模态框 -->
+    <n-modal v-model:show="showAddBookmarkModal" preset="card" style="width: 600px" title="快速添加书签">
+      <n-form ref="bookmarkFormRef" :model="bookmarkForm" :rules="bookmarkFormRules">
+        <n-form-item label="网址" path="url">
+          <n-input v-model:value="bookmarkForm.url" placeholder="请输入网址" />
         </n-form-item>
-        <n-form-item label="优先级">
-          <n-select
-              v-model:value="newTodo.priority"
-              :options="priorityOptions"
-              placeholder="请选择优先级"
+        <n-form-item label="标题" path="title">
+          <n-input v-model:value="bookmarkForm.title" placeholder="自动获取或手动输入" />
+        </n-form-item>
+        <n-form-item label="描述">
+          <n-input
+              v-model:value="bookmarkForm.description"
+              type="textarea"
+              placeholder="可选描述"
+              :rows="3"
           />
         </n-form-item>
-        <n-form-item label="截止日期">
-          <n-date-picker v-model:value="newTodo.dueDate" type="date" clearable />
+        <n-form-item label="标签">
+          <n-dynamic-tags v-model:value="bookmarkForm.tags" />
         </n-form-item>
       </n-form>
-      <div class="action-buttons">
-        <n-button type="primary" @click="addTodo">保存</n-button>
-        <n-button @click="showAddTodoModal = false">取消</n-button>
+      <template #footer>
+        <div class="modal-footer">
+          <n-button @click="showAddBookmarkModal = false">取消</n-button>
+          <n-button type="primary" @click="handleAddBookmark">确定添加</n-button>
+        </div>
+      </template>
+    </n-modal>
+
+    <!-- 全局搜索模态框 -->
+    <n-modal v-model:show="showGlobalSearchModal" preset="card" style="width: 800px" title="全局搜索">
+      <div class="global-search-container">
+        <n-input
+            v-model:value="globalSearchQuery"
+            size="large"
+            placeholder="搜索文档、书签、代码片段..."
+            clearable
+            @keyup.enter="performGlobalSearch"
+        >
+          <template #prefix>
+            <icon-font type="icon-search" :size="18" />
+          </template>
+        </n-input>
+
+        <div class="search-suggestions" v-if="searchSuggestions.length > 0">
+          <div class="suggestions-header">搜索建议</div>
+          <div
+              v-for="suggestion in searchSuggestions"
+              :key="suggestion.id"
+              class="suggestion-item"
+              @click="selectSearchSuggestion(suggestion)"
+          >
+            <icon-font :type="getSuggestionIcon(suggestion.type)" :size="16" />
+            <span class="suggestion-text">{{ suggestion.text }}</span>
+            <span class="suggestion-type">{{ suggestion.type }}</span>
+          </div>
+        </div>
       </div>
     </n-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/user'
+import {ref, reactive, computed, onMounted, onUnmounted} from 'vue'
+import {useRouter} from 'vue-router'
+import {useMessage} from 'naive-ui'
+import StatsCards from '@/components/common/StatsCards.vue'
+import QuickActions from '@/components/dashboard/QuickActions.vue'
+import DataOverviewCharts from '@/components/dashboard/DataOverviewCharts.vue'
 import IconFont from '@/components/common/IconFont.vue'
 
 const router = useRouter()
-const userStore = useUserStore()
+const message = useMessage()
 
-// 状态变量
-const hoveredCard = ref(null)
-const showAddTodoModal = ref(false)
-const isSearchFocused = ref(false)
-const searchKeyword = ref('')
-const searchInputRef = ref(null)
-const todoFormRef = ref(null)
+// 基础状态
+const userName = ref('知识管理员')
+const currentDateTime = ref('') // 统一的日期时间显示
 
-// 日期格式化
-const now = new Date()
-const formattedDate = computed(() => {
-  return now.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long'
-  })
+// 定时器引用，用于清理
+let timeUpdateTimer = null
+
+// 模态框状态
+const showAddBookmarkModal = ref(false)
+const showGlobalSearchModal = ref(false)
+
+// 表单数据
+const bookmarkFormRef = ref(null)
+const bookmarkForm = reactive({
+  url: '',
+  title: '',
+  description: '',
+  tags: []
 })
 
-// 问候语
-const getGreeting = () => {
-  const hour = now.getHours()
-  if (hour < 6) return '凌晨好！'
-  if (hour < 9) return '早上好！'
-  if (hour < 12) return '上午好！'
-  if (hour < 14) return '中午好！'
-  if (hour < 18) return '下午好！'
-  if (hour < 22) return '晚上好！'
-  return '夜深了，注意休息！'
+const bookmarkFormRules = {
+  url: {
+    required: true,
+    message: '请输入网址',
+    trigger: 'blur'
+  },
+  title: {
+    required: true,
+    message: '请输入标题',
+    trigger: 'blur'
+  }
 }
 
-// 统计数据
-const stats = reactive({
-  documents: 127,
-  recentDocuments: 12,
-  documentProgress: 65,
+// 全局搜索
+const globalSearchQuery = ref('')
+const searchSuggestions = ref([
+  {id: 1, text: 'Vue3 组合式API', type: '文档'},
+  {id: 2, text: 'React Hooks', type: '书签'},
+  {id: 3, text: '表单验证组件', type: '代码片段'}
+])
 
-  bookmarks: 246,
-  recentBookmarks: 18,
-  bookmarkProgress: 87,
-
-  codeSnippets: 85,
-  recentCodeSnippets: 6,
-  codeSnippetProgress: 42,
-
-  videos: 25,
-  watchedVideos: 12,
-  videoProgress: 48
+// 整体统计数据
+const overallStatsData = computed(() => {
+  return [
+    {
+      id: 'total-content',
+      title: '内容总数',
+      subtitle: '所有知识内容统计',
+      value: 1247,
+      icon: 'icon-zhishiku1',
+      color: '#6366f1',
+      colorRgb: '99, 102, 241',
+      trend: {value: 8, type: 'positive'},
+      progress: {value: 100, label: '100%'}
+    },
+    {
+      id: 'active-users',
+      title: '活跃用户',
+      subtitle: '本月活跃用户数量',
+      value: 89,
+      icon: 'icon-user-group',
+      color: '#10b981',
+      colorRgb: '16, 185, 129',
+      trend: {value: 15, type: 'positive'},
+      progress: {value: 75, label: '75%'}
+    },
+    {
+      id: 'storage-used',
+      title: '存储使用',
+      subtitle: '已使用存储空间',
+      value: 2.4,
+      icon: 'icon-database',
+      color: '#f59e0b',
+      colorRgb: '245, 158, 11',
+      trend: {value: 5, type: 'positive'},
+      progress: {value: 60, label: '2.4GB / 4GB'}
+    },
+    {
+      id: 'system-health',
+      title: '系统健康',
+      subtitle: '系统运行状态评分',
+      value: 98,
+      icon: 'icon-heart-pulse',
+      color: '#ef4444',
+      colorRgb: '239, 68, 68',
+      trend: {value: 2, type: 'positive'},
+      progress: {value: 98, label: '98%'}
+    }
+  ]
 })
 
-// 最近添加的书签
-const recentBookmarks = ref([
+// 快速操作项目
+const quickActionItems = [
   {
-    title: 'Vue3组合式API完全指南',
-    url: 'https://v3.cn.vuejs.org/api/composition-api.html',
-    icon: 'icon-vue',
-    color: 'var(--success-color)',
-    addedDate: '刚刚'
+    id: 'add-document',
+    title: '新建文档',
+    description: '创建新的知识文档',
+    icon: 'icon-file-add',
+    type: 'primary',
+    route: '/dashboard/documents'
   },
   {
-    title: 'TypeScript高级类型详解',
-    url: 'https://www.typescriptlang.org/docs/handbook/advanced-types.html',
-    icon: 'icon-typescript',
-    color: 'var(--info-color)',
-    addedDate: '2小时前'
+    id: 'add-bookmark',
+    title: '添加书签',
+    description: '保存有价值的网页链接',
+    icon: 'icon-bookmark-add',
+    type: 'success',
+    action: 'showAddBookmark'
   },
   {
-    title: 'React Hooks深入解析',
-    url: 'https://reactjs.org/docs/hooks-intro.html',
-    icon: 'icon-react',
-    color: 'var(--primary-color)',
-    addedDate: '昨天'
+    id: 'add-snippet',
+    title: '保存代码',
+    description: '收藏常用代码片段',
+    icon: 'icon-code-add',
+    type: 'warning',
+    route: '/dashboard/code-snippets'
   },
   {
-    title: 'Docker容器化应用部署指南',
-    url: 'https://docs.docker.com/get-started/',
-    icon: 'icon-docker',
-    color: 'var(--info-color)',
-    addedDate: '3天前'
-  },
-  {
-    title: 'SpringBoot微服务架构实战',
-    url: 'https://spring.io/projects/spring-boot',
-    icon: 'icon-spring',
-    color: 'var(--success-color)',
-    addedDate: '5天前'
+    id: 'search-all',
+    title: '全局搜索',
+    description: '在所有内容中搜索',
+    icon: 'icon-search-all',
+    type: 'info',
+    action: 'showGlobalSearch'
   }
-])
-
-// 热门标签
-const popularTags = ref([
-  { id: 1, name: 'Vue3', count: 42, type: 'success', icon: 'icon-vue' },
-  { id: 2, name: 'React', count: 36, type: 'primary', icon: 'icon-react' },
-  { id: 3, name: 'TypeScript', count: 31, type: 'info', icon: 'icon-typescript' },
-  { id: 4, name: 'JavaScript', count: 28, type: 'warning', icon: 'icon-javascript' },
-  { id: 5, name: 'CSS', count: 25, type: 'success', icon: 'icon-css' },
-  { id: 6, name: 'HTML', count: 23, type: 'error', icon: 'icon-html' },
-  { id: 7, name: '前端开发', count: 20, type: 'default' },
-  { id: 8, name: '后端开发', count: 18, type: 'default' },
-  { id: 9, name: 'Node.js', count: 16, type: 'success', icon: 'icon-nodejs' },
-  { id: 10, name: 'Spring', count: 15, type: 'success', icon: 'icon-spring' },
-  { id: 11, name: 'Java', count: 14, type: 'info', icon: 'icon-java' },
-  { id: 12, name: 'Python', count: 12, type: 'primary', icon: 'icon-python' },
-  { id: 13, name: 'Docker', count: 10, type: 'info', icon: 'icon-docker' },
-  { id: 14, name: '微服务', count: 9, type: 'default' },
-  { id: 15, name: '数据库', count: 8, type: 'default' }
-])
-
-// 快速访问按钮
-const actionButtons = [
-  { label: '上传文档', icon: 'icon-upload', route: '/document/upload', type: 'primary' },
-  { label: '代码片段', icon: 'icon-code', route: '/dashboard/code-snippets', type: 'info' },
-  { label: '视频学习', icon: 'icon-video', route: '/video/learning', type: 'success' },
-  { label: '我的书签', icon: 'icon-bookmark', route: '/dashboard/bookmarks', type: 'warning' },
-  { label: '开发工具', icon: 'icon-tool', route: '/dashboard/tools', type: 'error' },
-  { label: '搜索中心', icon: 'icon-search', route: '/search', type: 'default' }
 ]
 
-// 待办事项
-const todos = ref([
-  { id: 1, content: '完成Vue3组件库文档编写', priority: 'high', dueDate: Date.now() + 86400000 },
-  { id: 2, content: '学习TypeScript装饰器模式', priority: 'medium', dueDate: Date.now() + 86400000 * 2 },
-  { id: 3, content: '优化首页响应式布局', priority: 'high', dueDate: Date.now() + 86400000 * 3 },
-  { id: 4, content: '阅读Vue3源码解析', priority: 'low', dueDate: Date.now() + 86400000 * 5 },
-])
-const completedTodos = ref([3])
+// 最近收藏的书签
+const recentBookmarks = [
+  {
+    id: 1,
+    title: 'Vue3 组合式API官方指南',
+    description: 'Vue3 Composition API的完整使用指南和最佳实践',
+    platform: 'Vue.js',
+    favicon: 'https://vuejs.org/favicon.ico',
+    url: 'https://vuejs.org/guide/extras/composition-api-faq.html',
+    tags: ['Vue3', 'JavaScript', '前端'],
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000)
+  },
+  {
+    id: 2,
+    title: 'React Hooks最佳实践',
+    description: 'React Hooks的使用技巧和性能优化方案',
+    platform: 'React',
+    favicon: 'https://reactjs.org/favicon.ico',
+    url: 'https://reactjs.org/docs/hooks-intro.html',
+    tags: ['React', 'JavaScript', '前端'],
+    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000)
+  },
+  {
+    id: 3,
+    title: 'TypeScript高级类型',
+    description: '深入理解TypeScript的高级类型系统',
+    platform: 'TypeScript',
+    favicon: 'https://www.typescriptlang.org/favicon-32x32.png',
+    url: 'https://www.typescriptlang.org/docs/handbook/advanced-types.html',
+    tags: ['TypeScript', 'JavaScript'],
+    createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000)
+  },
+  {
+    id: 4,
+    title: 'SpringBoot微服务架构设计',
+    description: '基于SpringBoot的微服务架构设计模式与实现',
+    platform: 'Spring',
+    favicon: 'https://spring.io/favicon.ico',
+    url: 'https://spring.io/microservices',
+    tags: ['Java', 'Spring', '微服务'],
+    createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000)
+  },
+  {
+    id: 5,
+    title: 'Docker容器化最佳实践',
+    description: 'Docker容器化应用的部署和优化策略',
+    platform: 'Docker',
+    favicon: 'https://www.docker.com/favicon.ico',
+    url: 'https://docs.docker.com/get-started/',
+    tags: ['Docker', 'DevOps', '容器'],
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000)
+  }
+]
 
-// 新增待办
-const newTodo = reactive({
-  content: '',
-  priority: 'medium',
-  dueDate: null
+// 最近添加的文档
+const recentDocuments = [
+  {
+    id: 1,
+    title: 'Vue3项目架构设计文档',
+    description: '详细描述了Vue3大型项目的架构设计原则和实施方案',
+    category: '前端技术',
+    type: 'markdown',
+    size: 2048000, // 2MB
+    createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000)
+  },
+  {
+    id: 2,
+    title: 'API接口设计规范',
+    description: 'RESTful API设计规范和最佳实践指南',
+    category: '后端开发',
+    type: 'pdf',
+    size: 1536000, // 1.5MB
+    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000)
+  },
+  {
+    id: 3,
+    title: '数据库优化策略',
+    description: 'MySQL数据库性能优化的具体策略和实施方法',
+    category: '数据库',
+    type: 'word',
+    size: 3072000, // 3MB
+    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000)
+  },
+  {
+    id: 4,
+    title: 'UI设计规范文档',
+    description: '产品界面设计的统一规范和组件库使用指南',
+    category: '设计资源',
+    type: 'pdf',
+    size: 4096000, // 4MB
+    createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000)
+  },
+  {
+    id: 5,
+    title: '项目部署流程说明',
+    description: 'CI/CD流程配置和自动化部署的详细操作步骤',
+    category: '运维部署',
+    type: 'markdown',
+    size: 1024000, // 1MB
+    createdAt: new Date(Date.now() - 18 * 60 * 60 * 1000)
+  }
+]
+
+// 工具方法
+const formatRelativeTime = (timestamp) => {
+  const now = new Date()
+  const diff = now - new Date(timestamp)
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+
+  if (hours < 1) {
+    return '刚刚'
+  } else if (hours < 24) {
+    return `${hours}小时前`
+  } else {
+    const days = Math.floor(hours / 24)
+    return `${days}天前`
+  }
+}
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+const formatDate = () => {
+  const now = new Date()
+  const month = now.getMonth() + 1
+  const date = now.getDate()
+  return `${month}月${date}日`
+}
+
+const getDocumentIcon = (type) => {
+  const iconMap = {
+    markdown: 'icon-markdown',
+    pdf: 'icon-pdf',
+    word: 'icon-word',
+    excel: 'icon-excel',
+    ppt: 'icon-powerpoint',
+    text: 'icon-file-text'
+  }
+  return iconMap[type] || 'icon-file'
+}
+
+const getSuggestionIcon = (type) => {
+  const typeMap = {
+    '文档': 'icon-file-text',
+    '书签': 'icon-bookmark',
+    '代码片段': 'icon-code'
+  }
+  return typeMap[type] || 'icon-search'
+}
+
+// 事件处理方法
+const handleQuickAction = (action) => {
+  if (action.type === 'navigate') {
+    router.push(action.payload)
+  } else if (action.type === 'showAddBookmark') {
+    showAddBookmarkModal.value = true
+  } else if (action.type === 'showGlobalSearch') {
+    showGlobalSearchModal.value = true
+  }
+}
+
+const navigateToBookmarks = () => {
+  router.push('/dashboard/bookmarks')
+}
+
+const navigateToDocuments = () => {
+  router.push('/dashboard/documents')
+}
+
+const handleAddBookmark = () => {
+  bookmarkFormRef.value?.validate((errors) => {
+    if (!errors) {
+      message.success('书签添加成功！')
+      showAddBookmarkModal.value = false
+      // 重置表单
+      Object.assign(bookmarkForm, {
+        url: '',
+        title: '',
+        description: '',
+        tags: []
+      })
+    }
+  })
+}
+
+const performGlobalSearch = () => {
+  if (globalSearchQuery.value.trim()) {
+    router.push(`/dashboard/search?q=${encodeURIComponent(globalSearchQuery.value)}`)
+    showGlobalSearchModal.value = false
+  }
+}
+
+const selectSearchSuggestion = (suggestion) => {
+  globalSearchQuery.value = suggestion.text
+  performGlobalSearch()
+}
+
+const openBookmark = (bookmark) => {
+  window.open(bookmark.url, '_blank')
+}
+
+const favoriteBookmark = (bookmark) => {
+  message.success(`已收藏: ${bookmark.title}`)
+}
+
+const shareBookmark = (bookmark) => {
+  navigator.clipboard.writeText(bookmark.url)
+  message.success('链接已复制到剪贴板')
+}
+
+const openDocument = (document) => {
+  router.push(`/dashboard/documents/${document.id}`)
+}
+
+const editDocument = (document) => {
+  router.push(`/dashboard/documents/${document.id}/edit`)
+}
+
+const downloadDocument = (document) => {
+  message.success(`开始下载: ${document.title}`)
+}
+
+// 时间更新逻辑 - 重新设计
+const updateTime = () => {
+  const now = new Date()
+
+  // 格式化为您要求的格式："现在是2025年5月24日 22：23 50 星期六"
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1
+  const date = now.getDate()
+  const hours = now.getHours().toString().padStart(2, '0')
+  const minutes = now.getMinutes().toString().padStart(2, '0')
+  const seconds = now.getSeconds().toString().padStart(2, '0')
+
+  // 获取星期
+  const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  const weekday = weekdays[now.getDay()]
+
+  // 组合完整的日期时间字符串
+  currentDateTime.value = `现在是${year}年${month}月${date}日 ${hours}:${minutes} ${seconds} ${weekday}`
+}
+
+onMounted(() => {
+  // 立即更新一次时间
+  updateTime()
+
+  // 每秒更新时间，确保秒数实时变化
+  timeUpdateTimer = setInterval(updateTime, 1000)
 })
 
-// 导航方法
-const navigateTo = (route) => {
-  router.push(route)
-}
-
-// 导航到带标签的搜索页面
-const navigateWithTag = (tagName) => {
-  router.push({
-    path: '/search',
-    query: { tag: tagName }
-  })
-}
-
-// 添加待办事项
-const addTodo = () => {
-  if (!newTodo.content) return
-
-  todos.value.push({
-    id: Date.now(),
-    content: newTodo.content,
-    priority: newTodo.priority,
-    dueDate: newTodo.dueDate
-  })
-
-  newTodo.content = ''
-  newTodo.priority = 'medium'
-  newTodo.dueDate = null
-  showAddTodoModal.value = false
-}
-
-// 切换待办事项完成状态
-const toggleTodoComplete = (id) => {
-  const index = completedTodos.value.indexOf(id)
-  if (index > -1) {
-    completedTodos.value.splice(index, 1)
-  } else {
-    completedTodos.value.push(id)
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (timeUpdateTimer) {
+    clearInterval(timeUpdateTimer)
+    timeUpdateTimer = null
   }
-}
-
-// 移除待办事项
-const removeTodo = (id) => {
-  todos.value = todos.value.filter(todo => todo.id !== id)
-  const index = completedTodos.value.indexOf(id)
-  if (index > -1) {
-    completedTodos.value.splice(index, 1)
-  }
-}
-
-// 获取优先级类型
-const getPriorityType = (priority) => {
-  const types = {
-    high: 'error',
-    medium: 'warning',
-    low: 'info'
-  }
-  return types[priority] || 'default'
-}
-
-// 获取优先级标签
-const getPriorityLabel = (priority) => {
-  const labels = {
-    high: '高优',
-    medium: '中优',
-    low: '低优'
-  }
-  return labels[priority] || '普通'
-}
-
-// 格式化到期日期
-const formatDueDate = (timestamp) => {
-  if (!timestamp) return '无截止日期'
-
-  const date = new Date(timestamp)
-  const today = new Date()
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-
-  if (date.toDateString() === today.toDateString()) {
-    return '今天截止'
-  } else if (date.toDateString() === tomorrow.toDateString()) {
-    return '明天截止'
-  } else {
-    return `${date.getMonth() + 1}月${date.getDate()}日截止`
-  }
-}
-
-// 检查截止日期是否临近
-const isDueNear = (timestamp) => {
-  if (!timestamp) return false
-
-  const date = new Date(timestamp)
-  const today = new Date()
-
-  // 3天内视为临近
-  return (date - today) / (1000 * 60 * 60 * 24) <= 3
-}
-
-// 格式化URL
-const formatUrl = (url) => {
-  if (!url) return ''
-
-  try {
-    const urlObj = new URL(url)
-    return urlObj.hostname
-  } catch (e) {
-    return url
-  }
-}
-
-// 打开书签链接
-const openBookmark = (url) => {
-  window.open(url, '_blank')
-}
-
-// 执行搜索
-const performSearch = () => {
-  if (!searchKeyword.value.trim()) return
-
-  router.push({
-    path: '/search',
-    query: { q: searchKeyword.value }
-  })
-}
-
-// 获取标签大小
-const getTagSize = (count) => {
-  // 根据标签出现次数动态设置字体大小
-  const minSize = 12
-  const maxSize = 20
-  const maxCount = Math.max(...popularTags.value.map(tag => tag.count))
-
-  const size = minSize + (count / maxCount) * (maxSize - minSize)
-  return `${size}px`
-}
-
-// 页面加载
-onMounted(() => {
-  // 这里可以添加初始化数据的API调用
-  // 例如: fetchDashboardData()
 })
 </script>
 
 <style scoped>
+/* 整体容器 */
 .dashboard-container {
   padding: var(--content-padding);
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  min-height: calc(100vh - var(--header-height));
 }
 
-/* 欢迎区域 */
-.welcome-section {
-  margin-bottom: 28px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: var(--card-color);
-  padding: 24px;
-  border-radius: var(--border-radius-large);
-  box-shadow: var(--box-shadow-1);
-}
-
-.welcome-title {
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.welcome-subtitle {
-  margin-top: 8px;
-  color: var(--text-color-tertiary);
-  font-size: 15px;
-}
-
-/* 全局搜索框 */
-.global-search-wrapper {
-  flex: 0 0 400px;
-}
-
-.search-input-wrapper {
-  display: flex;
-  align-items: center;
-  background-color: rgba(245, 247, 250, 0.8);
-  border-radius: 24px;
-  height: 48px;
-  padding: 0 16px;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.search-input-wrapper.is-focused {
-  background-color: white;
-  border-color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
-}
-
-.search-icon {
-  color: var(--text-color-tertiary);
-  margin-right: 10px;
-}
-
-.global-search-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 15px;
-  color: var(--text-color-base);
-}
-
-.global-search-input::placeholder {
-  color: var(--text-color-tertiary);
-}
-
-.clear-button {
-  margin-left: 8px;
-}
-
-/* 统计卡片 */
-.stat-cards-container {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 28px;
-}
-
-.stat-card {
-  background-color: var(--card-color);
-  border-radius: var(--border-radius-large);
+/* 重新设计的欢迎横幅样式 - 优雅的紫色渐变背景 */
+.welcome-banner {
+  position: relative;
+  background: linear-gradient(135deg,
+  rgba(79, 45, 152, 0.65) 0%,   /* 优雅的深紫色起始 */ rgba(75, 17, 175, 0.6) 25%,  /* 中度紫色 */
+  rgba(162, 123, 232, 0.55) 50%, /* 浅紫色过渡 */ rgba(57, 16, 136, 0.5) 75%,  /* 更浅的紫色 */ rgb(79, 138, 214) 100% /* 淡紫色收尾 */
+  );
+  border-radius: 20px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--box-shadow-1);
-  height: 100%;
+  backdrop-filter: blur(16px);
+  box-shadow:
+      0 8px 24px rgba(124, 95, 186, 0.15),
+      0 4px 12px rgba(0, 0, 0, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.stat-card.hovering {
-  transform: translateY(-5px);
-  box-shadow: var(--box-shadow-2);
-}
-
-.stat-card-header {
+.banner-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  position: relative;
+  z-index: 2;
+  gap: 28px;
+  min-height: 100px;
 }
 
-.stat-icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.welcome-text {
+  color: white;
+  flex: 1;
+  max-width: 45%;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
 }
 
-.primary-bg {
-  background-color: var(--primary-color);
-}
-
-.success-bg {
-  background-color: var(--success-color);
-}
-
-.warning-bg {
-  background-color: var(--warning-color);
-}
-
-.info-bg {
-  background-color: var(--info-color);
-}
-
-.stat-card-body {
-  margin-bottom: 16px;
-}
-
-.stat-value {
-  font-size: 30px;
+.welcome-title {
+  font-size: 28px;
   font-weight: 700;
-  color: var(--text-color-base);
-  line-height: 1.2;
-}
-
-.stat-label {
-  font-size: 15px;
-  color: var(--text-color-secondary);
-  margin-top: 2px;
-  font-weight: 500;
-}
-
-.stat-trend {
+  margin: 0 0 16px 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 14px;
 }
 
-.trend-value {
-  font-size: 13px;
-  color: var(--text-color-tertiary);
+.welcome-highlight {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #e2e8f0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 3px 12px rgba(255, 255, 255, 0.4);
+  position: relative;
 }
 
-/* 快速操作按钮组 */
-.quick-action-buttons {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
-  margin-bottom: 28px;
+.welcome-highlight::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.6), transparent);
+  border-radius: 3px;
 }
 
-.quick-action-button {
-  height: 44px;
-  transition: all 0.3s ease;
-  border-radius: var(--border-radius);
-  font-weight: 500;
+.title-icon {
+  filter: drop-shadow(0 4px 8px rgba(255, 255, 255, 0.3));
 }
 
-.quick-action-button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
-}
-
-/* 主体内容区域 */
-.main-content-container {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  margin-bottom: 28px;
-}
-
-.content-column {
+.datetime-info {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  margin-bottom: 0;
 }
 
-.content-card {
-  background-color: var(--card-color);
-  border-radius: var(--border-radius-large);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--box-shadow-1);
+.time-display {
+  font-size: 18px; /* 增大时间显示字体 */
+  font-weight: 600;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  color: #fff;
+  letter-spacing: 0.8px;
+  position: relative;
+}
+
+.time-display::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 40px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+}
+
+.motivation-text {
+  font-size: 15px;
+  opacity: 0.95;
+  font-weight: 400;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+
+/* 简化的装饰元素 */
+.banner-decoration {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
   height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
 }
 
-.content-card:hover {
-  box-shadow: var(--box-shadow-2);
+/* 使用blob形状替代 */
+.decoration-blob {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  animation: subtleFloat 10s ease-in-out infinite;
+  backdrop-filter: blur(2px);
 }
 
-/* 最近添加的书签模块 */
-.bookmarks-list {
+.blob-1 {
+  width: 80px;
+  height: 80px;
+  top: -40px;
+  right: 15%;
+  animation-delay: 0s;
+}
+
+.blob-2 {
+  width: 60px;
+  height: 60px;
+  top: 60%;
+  right: 8%;
+  animation-delay: 3s;
+}
+
+.blob-3 {
+  width: 45px;
+  height: 45px;
+  bottom: -22px;
+  right: 25%;
+  animation-delay: 6s;
+}
+
+.floating-icon {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(3px);
+  animation: subtleFloat 12s ease-in-out infinite;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.icon-1 {
+  top: 20%;
+  right: 12%;
+  animation-delay: 2s;
+}
+
+.icon-2 {
+  bottom: 25%;
+  right: 30%;
+  animation-delay: 5s;
+}
+
+.icon-3 {
+  top: 65%;
+  left: 25%;
+  animation-delay: 1s;
+}
+
+.floating-element {
+  animation: gentlePulse 5s ease-in-out infinite;
+}
+
+/* 统计卡片区域 */
+.stats-section {
+  margin-bottom: 32px;
+}
+
+/* 主要内容区域 */
+.main-content-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
+.quick-actions-section,
+.charts-section {
+  width: 100%;
+}
+
+/* 底部区域 */
+.bottom-section {
+  margin-bottom: 32px;
+}
+
+.bottom-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* 卡片基础样式 */
+.recent-bookmarks-card,
+.recent-documents-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-bookmarks-card:hover,
+.recent-documents-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.card-header .header-icon {
+  margin-right: 12px;
+  color: var(--primary-color);
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color-base);
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* 最近项目列表样式 */
+.recent-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* 书签项目样式 */
 .bookmark-item {
   display: flex;
-  align-items: center;
-  padding: 12px;
-  border-radius: var(--border-radius);
-  background-color: rgba(245, 247, 250, 0.5);
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .bookmark-item:hover {
-  background-color: rgba(245, 247, 250, 0.8);
+  background: rgba(255, 255, 255, 0.9);
   transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
-.bookmark-icon {
-  width: 36px;
-  height: 36px;
+.bookmark-favicon {
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
+  overflow: hidden;
   flex-shrink: 0;
+}
+
+.bookmark-favicon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .bookmark-content {
@@ -891,210 +940,390 @@ onMounted(() => {
 }
 
 .bookmark-title {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 4px;
-  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color-base);
+  margin: 0 0 6px 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.bookmark-url {
-  font-size: 12px;
-  color: var(--text-color-tertiary);
-  white-space: nowrap;
+.bookmark-description {
+  font-size: 13px;
+  color: var(--text-color-secondary);
+  margin: 0 0 8px 0;
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .bookmark-meta {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.bookmark-platform {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.bookmark-time {
+  color: var(--text-color-tertiary);
+}
+
+.bookmark-tags {
+  display: flex;
   gap: 4px;
 }
 
-.bookmark-date {
-  font-size: 12px;
+.bookmark-tag {
+  background: rgba(0, 0, 0, 0.05);
   color: var(--text-color-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
 }
 
 .bookmark-actions {
   display: flex;
   gap: 4px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  flex-shrink: 0;
 }
 
-.bookmark-item:hover .bookmark-actions {
-  opacity: 1;
-}
-
-.bookmark-add-btn {
-  margin-top: 12px;
-}
-
-/* 待办事项模块 */
-.todo-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.todo-items-container {
+/* 文档项目样式 */
+.document-item {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.todo-item {
-  display: flex;
-  padding: 12px;
-  border-radius: var(--border-radius);
-  background-color: rgba(245, 247, 250, 0.5);
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.todo-item:hover {
-  background-color: rgba(245, 247, 250, 0.8);
+.document-item:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
-.todo-item.completed {
-  background-color: rgba(245, 247, 250, 0.3);
-}
-
-.todo-checkbox {
-  margin-right: 12px;
+.document-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.1);
   display: flex;
-  align-items: flex-start;
-  padding-top: 2px;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  flex-shrink: 0;
 }
 
-.todo-content {
+.document-content {
   flex: 1;
   min-width: 0;
 }
 
-.todo-text {
-  font-size: 14px;
-  margin-bottom: 6px;
-  word-break: break-word;
-  transition: all 0.3s ease;
+.document-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color-base);
+  margin: 0 0 6px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.line-through {
-  text-decoration: line-through;
-  color: var(--text-color-tertiary);
+.document-description {
+  font-size: 13px;
+  color: var(--text-color-secondary);
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.todo-meta {
+.document-meta {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
   font-size: 12px;
 }
 
-.todo-due {
-  color: var(--text-color-tertiary);
-}
-
-.due-near {
-  color: var(--error-color);
+.document-category {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+  padding: 2px 6px;
+  border-radius: 4px;
   font-weight: 500;
 }
 
-.todo-actions {
-  display: flex;
-  align-items: flex-start;
+.document-time {
+  color: var(--text-color-tertiary);
 }
 
-/* 热门标签 */
-.tags-card {
-  margin-bottom: 28px;
+.document-size {
+  color: var(--text-color-tertiary);
 }
 
-.tags-cloud {
+.document-actions {
   display: flex;
-  flex-wrap: wrap;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* 搜索相关样式 */
+.global-search-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.search-suggestions {
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.suggestions-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+  margin-bottom: 12px;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  padding: 8px 4px;
-}
-
-.tag-item {
+  padding: 12px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.2s ease;
 }
 
-.tag-item:hover {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+.suggestion-item:hover {
+  background: rgba(99, 102, 241, 0.05);
 }
 
-/* 对话框 */
-.action-buttons {
+.suggestion-text {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-color-base);
+}
+
+.suggestion-type {
+  font-size: 12px;
+  color: var(--text-color-tertiary);
+  background: rgba(0, 0, 0, 0.05);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 24px;
 }
 
-/* 动画效果 */
-.list-enter-active,
-.list-leave-active {
-  transition: all 0.5s ease;
-}
-
-.list-enter-from,
-.list-leave-to {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-/* 响应式设计 */
-@media (max-width: 1280px) {
-  .stat-cards-container {
-    grid-template-columns: repeat(2, 1fr);
+/* 响应式设计 - 优化大尺寸下的显示 */
+@media (max-width: 1400px) {
+  .info-panel {
+    max-width: 460px;
+    min-width: 420px;
   }
 
-  .quick-action-buttons {
-    grid-template-columns: repeat(3, 1fr);
+  .weather-card {
+    width: 260px;
+    min-width: 260px;
+  }
+
+  .daily-card {
+    width: 200px;
+    min-width: 200px;
   }
 }
 
-@media (max-width: 991px) {
-  .welcome-section {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 20px;
-  }
-
-  .global-search-wrapper {
-    flex: 0 0 auto;
-    width: 100%;
-  }
-
-  .main-content-container {
+@media (max-width: 1200px) {
+  .bottom-cards-grid {
     grid-template-columns: 1fr;
   }
 
-  .content-card {
-    margin-bottom: 20px;
+  .recent-bookmarks-card,
+  .recent-documents-card {
+    height: auto;
+    max-height: 500px;
+  }
+
+  .banner-content {
+    flex-direction: column;
+    gap: 20px;
+    align-items: stretch;
+  }
+
+  .welcome-text {
+    max-width: 100%;
+  }
+
+  .info-panel {
+    flex-direction: row;
+    max-width: 100%;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .weather-card {
+    width: 240px;
+    min-width: 240px;
+  }
+
+  .daily-card {
+    width: 180px;
+    min-width: 180px;
   }
 }
 
 @media (max-width: 768px) {
-  .stat-cards-container {
-    grid-template-columns: 1fr;
+  .welcome-banner {
+    padding: 28px 24px;
   }
 
-  .quick-action-buttons {
-    grid-template-columns: repeat(2, 1fr);
+  .welcome-title {
+    font-size: 24px;
+  }
+
+  .info-panel {
+    flex-direction: row;
+    max-width: 100%;
+    margin: 0 auto;
+    gap: 16px;
+    justify-content: center;
+  }
+
+  .weather-card {
+    width: 200px;
+    min-width: 200px;
+    padding: 16px;
+  }
+
+  .daily-card {
+    width: 160px;
+    min-width: 160px;
+    padding: 16px;
+  }
+
+  .temperature {
+    font-size: 28px;
+  }
+
+  .weather-status {
+    font-size: 13px;
+  }
+
+  .weather-feeling,
+  .air-quality {
+    font-size: 11px;
+  }
+
+  .detail-label,
+  .detail-value {
+    font-size: 10px;
+  }
+
+  .stat-number {
+    font-size: 15px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+  }
+
+  .bookmark-item,
+  .document-item {
+    padding: 12px;
+  }
+
+  .bookmark-meta,
+  .document-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
 }
 
 @media (max-width: 480px) {
-  .quick-action-buttons {
-    grid-template-columns: 1fr;
+  .welcome-banner {
+    padding: 24px 20px;
+  }
+
+  .info-panel {
+    gap: 12px;
+  }
+
+  .weather-card {
+    width: 180px;
+    min-width: 180px;
+    padding: 14px;
+  }
+
+  .daily-card {
+    width: 140px;
+    min-width: 140px;
+    padding: 14px;
+  }
+
+  .weather-details {
+    gap: 8px 10px;
+  }
+
+  .city-name,
+  .daily-title {
+    font-size: 12px;
+  }
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .welcome-banner {
+    background: linear-gradient(135deg,
+    rgba(88, 28, 135, 0.7) 0%,
+    rgba(109, 40, 217, 0.75) 25%,
+    rgba(124, 58, 237, 0.65) 50%,
+    rgba(147, 97, 244, 0.6) 75%,
+    rgba(167, 139, 250, 0.55) 100%
+    );
+  }
+
+  .recent-bookmarks-card,
+  .recent-documents-card {
+    background: rgba(30, 41, 59, 0.8);
+  }
+
+  .bookmark-item,
+  .document-item {
+    background: rgba(51, 65, 85, 0.7);
+    border-color: rgba(71, 85, 105, 0.3);
+  }
+
+  .weather-card,
+  .daily-card {
+    background: rgba(15, 23, 42, 0.2);
+    border-color: rgba(71, 85, 105, 0.3);
   }
 }
 </style>
